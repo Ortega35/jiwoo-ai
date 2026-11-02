@@ -23,6 +23,7 @@ export default function App() {
   const isDraggingRef = useRef(false);
 
   useEffect(() => {
+    // Cek sesi hanya 1 kali saat aplikasi pertama kali dibuka
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         const synced = syncSupabaseUser(session.user);
@@ -31,20 +32,25 @@ export default function App() {
       }
     });
 
+    // Pantau perubahan status login/logout tanpa mengunci perpindahan halaman
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         const synced = syncSupabaseUser(session.user);
         setCurrentUser(synced);
-        setScreen((prev) => (prev < 5 || prev > 6 ? 5 : prev));
-      } else {
+        if (event === "SIGNED_IN") {
+          setScreen((prev) =>
+            prev === 4 || prev === 41 || prev === 42 ? 5 : prev,
+          );
+        }
+      } else if (event === "SIGNED_OUT") {
         setCurrentUser(getCurrentUser());
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [screen]);
+  }, []);
 
   const handleStart = (clientX) => {
     startXRef.current = clientX;
@@ -70,16 +76,18 @@ export default function App() {
 
   const handleDesktopLogout = async () => {
     await logoutUser();
+    setCurrentUser(getCurrentUser());
     setScreen(4);
   };
 
   const isDashboard = screen === 5 || screen === 6;
+  const isLoggedIn = currentUser && !currentUser.isGuest;
 
   return (
     <div className="h-screen w-full bg-[#FDF3E7] flex font-serif select-none overflow-hidden text-[#4A3525]">
-      {/* SIDEBAR KHUSUS LAPTOP/DESKTOP (Hanya muncul di layar md/laptop saat sudah login) */}
+      {/* SIDEBAR KHUSUS LAPTOP/DESKTOP (Hanya muncul di layar md/laptop saat di Dashboard) */}
       {isDashboard && (
-        <aside className="hidden md:flex w-72 bg-[#F6E4CE] border-r-2 border-[#4A3525]/15 flex-col justify-between p-6 z-20 shrink-0 shadow-lg">
+        <aside className="hidden md:flex w-72 bg-[#F6E4CE] border-r-2 border-[#4A3525]/15 flex-col justify-between p-6 z-30 shrink-0 shadow-lg">
           <div>
             {/* Brand Header */}
             <div className="flex items-center gap-3 pb-5 border-b-2 border-[#4A3525]/10">
@@ -206,7 +214,7 @@ export default function App() {
       >
         {/* Top Navbar Khusus Laptop saat di halaman Welcome / Onboarding / Auth */}
         {!isDashboard && (
-          <header className="hidden md:flex items-center justify-between px-12 py-5 border-b border-[#4A3525]/10 bg-[#FDF3E7]/80 backdrop-sepia-50 z-20 ">
+          <header className="hidden md:flex items-center justify-between px-12 py-5 border-b border-[#4A3525]/10 bg-[#FDF3E7]/80 backdrop-sepia-50 z-20">
             <div
               onClick={() => setScreen(1)}
               className="flex items-center gap-2.5 cursor-pointer"
@@ -214,13 +222,13 @@ export default function App() {
               <img
                 src={jiwooMascot}
                 alt="Jiwoo"
-                className="w-15 h-15 object-contain"
+                className="w-12 h-12 object-contain"
               />
               <span className="text-lg font-bold text-[#4A3525]">
                 Jiwoo Counseling
               </span>
             </div>
-            <div className="flex items-center gap-6 text-l font-bold">
+            <div className="flex items-center gap-6 text-sm font-bold">
               <button
                 type="button"
                 onClick={() => setScreen(1)}
@@ -250,10 +258,10 @@ export default function App() {
               </button>
               <button
                 type="button"
-                onClick={() => setScreen(4)}
+                onClick={() => setScreen(isLoggedIn ? 5 : 4)}
                 className="bg-[#F4A950] px-4 py-2 rounded-full border border-[#4A3525] shadow-sm cursor-pointer hover:bg-[#e5983e]"
               >
-                Masuk / Daftar
+                {isLoggedIn ? "Ruang Konseling" : "Masuk / Daftar"}
               </button>
             </div>
           </header>
@@ -267,7 +275,9 @@ export default function App() {
         <div className="relative z-10 flex-1 w-full h-full overflow-y-auto flex flex-col justify-center">
           {screen === 1 && <WelcomeScreen onNext={() => setScreen(2)} />}
           {screen === 2 && <OnboardingAbout onNext={() => setScreen(3)} />}
-          {screen === 3 && <OnboardingFeatures onNext={() => setScreen(4)} />}
+          {screen === 3 && (
+            <OnboardingFeatures onNext={() => setScreen(isLoggedIn ? 5 : 4)} />
+          )}
           {screen === 4 && (
             <AuthScreen
               onGoSignUp={() => setScreen(41)}
