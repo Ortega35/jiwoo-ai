@@ -14,43 +14,64 @@ import {
   getCurrentUser,
   logoutUser,
 } from "./services/authService";
-import { MessageCircleHeart, User, Sparkles, LogOut, Home } from "lucide-react";
+import {
+  MessageCircleHeart,
+  User,
+  Sparkles,
+  LogOut,
+  Home,
+  Menu,
+  X,
+} from "lucide-react";
 
 export default function App() {
   const [screen, setScreen] = useState(1);
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const startXRef = useRef(null);
   const isDraggingRef = useRef(false);
+  const isInitialAuthChecked = useRef(false);
 
   useEffect(() => {
-    // Cek sesi hanya 1 kali saat aplikasi pertama kali dibuka
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         const synced = syncSupabaseUser(session.user);
         setCurrentUser(synced);
-        setScreen(5);
+        if (!isInitialAuthChecked.current) {
+          isInitialAuthChecked.current = true;
+          setScreen(5);
+        }
       }
     });
 
-    // Pantau perubahan status login/logout tanpa mengunci perpindahan halaman
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         const synced = syncSupabaseUser(session.user);
         setCurrentUser(synced);
-        if (event === "SIGNED_IN") {
-          setScreen((prev) =>
-            prev === 4 || prev === 41 || prev === 42 ? 5 : prev,
-          );
+        if (!isInitialAuthChecked.current) {
+          isInitialAuthChecked.current = true;
+          setScreen(5);
         }
       } else if (event === "SIGNED_OUT") {
+        isInitialAuthChecked.current = false;
         setCurrentUser(getCurrentUser());
       }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const isDashboard = screen === 5 || screen === 6;
+  const isLoggedIn = Boolean(
+    currentUser && !currentUser.isGuest && currentUser.email,
+  );
+
+  const navigateTo = (targetScreen) => {
+    setScreen(targetScreen);
+    setIsMobileMenuOpen(false);
+  };
 
   const handleStart = (clientX) => {
     startXRef.current = clientX;
@@ -63,8 +84,12 @@ export default function App() {
     const minSwipeDistance = 50;
 
     if (screen >= 2 && screen <= 4) {
-      if (diffX > minSwipeDistance && screen < 4) {
-        setScreen((prev) => prev + 1);
+      if (diffX > minSwipeDistance) {
+        if (screen === 3 && isLoggedIn) {
+          setScreen(5);
+        } else if (screen < 4) {
+          setScreen((prev) => prev + 1);
+        }
       } else if (diffX < -minSwipeDistance && screen > 2) {
         setScreen((prev) => prev - 1);
       }
@@ -80,16 +105,12 @@ export default function App() {
     setScreen(4);
   };
 
-  const isDashboard = screen === 5 || screen === 6;
-  const isLoggedIn = currentUser && !currentUser.isGuest;
-
   return (
     <div className="h-screen w-full bg-[#FDF3E7] flex font-serif select-none overflow-hidden text-[#4A3525]">
-      {/* SIDEBAR KHUSUS LAPTOP/DESKTOP (Hanya muncul di layar md/laptop saat di Dashboard) */}
+      {/* SIDEBAR KHUSUS LAPTOP/DESKTOP */}
       {isDashboard && (
         <aside className="hidden md:flex w-72 bg-[#F6E4CE] border-r-2 border-[#4A3525]/15 flex-col justify-between p-6 z-30 shrink-0 shadow-lg">
           <div>
-            {/* Brand Header */}
             <div className="flex items-center gap-3 pb-5 border-b-2 border-[#4A3525]/10">
               <div className="w-12 h-12 rounded-2xl bg-[#F4A950] border-2 border-[#4A3525] flex items-center justify-center shadow-sm">
                 <img
@@ -108,7 +129,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Menu Navigasi Laptop */}
             <nav className="mt-6 flex flex-col gap-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-[#4A3525]/50 px-3 mb-1">
                 Menu Utama
@@ -149,7 +169,6 @@ export default function App() {
               </button>
             </nav>
 
-            {/* Info Privasi Zero-Database di Sidebar */}
             <div className="mt-8 p-4 rounded-2xl bg-[#FDF3E7] border border-[#4A3525]/20 text-left">
               <div className="flex items-center gap-1.5 text-xs font-bold text-[#4A3525] mb-1">
                 <Sparkles size={14} className="text-[#F4A950]" />
@@ -162,7 +181,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Kartu User Aktif di Bawah Sidebar */}
           <div className="pt-4 border-t-2 border-[#4A3525]/10 flex flex-col gap-3">
             <div className="flex items-center gap-3 bg-[#FDF3E7] p-3 rounded-2xl border border-[#4A3525]/20">
               <div className="w-10 h-10 rounded-full bg-[#EAE6DF] border border-[#4A3525] overflow-hidden shrink-0 flex items-center justify-center">
@@ -212,27 +230,31 @@ export default function App() {
           screen >= 2 && screen <= 4 ? "cursor-grab active:cursor-grabbing" : ""
         }`}
       >
-        {/* Top Navbar Khusus Laptop saat di halaman Welcome / Onboarding / Auth */}
+        {/* Top Navbar: Hamburger Menu di HP & Menu Horizontal di Laptop */}
+        {/* Top Navbar: Hamburger Menu Beranimasi di HP & Menu Horizontal di Laptop */}
         {!isDashboard && (
-          <header className="hidden md:flex items-center justify-between px-12 py-5 border-b border-[#4A3525]/10 bg-[#FDF3E7]/80 backdrop-sepia-50 z-20">
+          <header className="relative flex items-center justify-between px-5 md:px-12 py-3.5 md:py-5 border-b border-[#4A3525]/15 bg-[#FDF3E7]/95 backdrop-blur-sm z-30 shrink-0">
+            {/* Logo & Nama Brand */}
             <div
-              onClick={() => setScreen(1)}
+              onClick={() => navigateTo(1)}
               className="flex items-center gap-2.5 cursor-pointer"
             >
               <img
                 src={jiwooMascot}
                 alt="Jiwoo"
-                className="w-12 h-12 object-contain"
+                className="w-9 h-9 md:w-12 md:h-12 object-contain"
               />
-              <span className="text-lg font-bold text-[#4A3525]">
+              <span className="text-base md:text-lg font-bold text-[#4A3525]">
                 Jiwoo Counseling
               </span>
             </div>
-            <div className="flex items-center gap-6 text-sm font-bold">
+
+            {/* Menu Horizontal Khusus Laptop (md:flex) */}
+            <div className="hidden md:flex items-center gap-6 text-sm font-bold">
               <button
                 type="button"
-                onClick={() => setScreen(1)}
-                className={`cursor-pointer hover:text-[#F4A950] ${
+                onClick={() => navigateTo(1)}
+                className={`cursor-pointer hover:text-[#F4A950] transition-colors ${
                   screen === 1 ? "underline decoration-2" : ""
                 }`}
               >
@@ -240,8 +262,8 @@ export default function App() {
               </button>
               <button
                 type="button"
-                onClick={() => setScreen(2)}
-                className={`cursor-pointer hover:text-[#F4A950] ${
+                onClick={() => navigateTo(2)}
+                className={`cursor-pointer hover:text-[#F4A950] transition-colors ${
                   screen === 2 ? "underline decoration-2" : ""
                 }`}
               >
@@ -249,8 +271,8 @@ export default function App() {
               </button>
               <button
                 type="button"
-                onClick={() => setScreen(3)}
-                className={`cursor-pointer hover:text-[#F4A950] ${
+                onClick={() => navigateTo(3)}
+                className={`cursor-pointer hover:text-[#F4A950] transition-colors ${
                   screen === 3 ? "underline decoration-2" : ""
                 }`}
               >
@@ -258,10 +280,87 @@ export default function App() {
               </button>
               <button
                 type="button"
-                onClick={() => setScreen(isLoggedIn ? 5 : 4)}
-                className="bg-[#F4A950] px-4 py-2 rounded-full border border-[#4A3525] shadow-sm cursor-pointer hover:bg-[#e5983e]"
+                onClick={() => navigateTo(isLoggedIn ? 5 : 4)}
+                className="bg-[#F4A950] px-4 py-2 rounded-full border border-[#4A3525] shadow-sm cursor-pointer hover:bg-[#e5983e] transition-all"
               >
-                {isLoggedIn ? "Ruang Konseling" : "Masuk / Daftar"}
+                {isLoggedIn ? "Ruang Konseling →" : "Masuk / Daftar"}
+              </button>
+            </div>
+
+            {/* Tombol Hamburger Khusus HP dengan Animasi Putar (Rotate & Scale) */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+              aria-label="Toggle Menu"
+              className="md:hidden relative w-10 h-10 flex items-center justify-center rounded-xl bg-[#F6E4CE] border-2 border-[#4A3525] text-[#4A3525] shadow-[0_2px_0_#4A3525] active:translate-y-0.5 transition-all cursor-pointer overflow-hidden"
+            >
+              <Menu
+                size={20}
+                className={`absolute transition-all duration-300 ease-in-out ${
+                  isMobileMenuOpen
+                    ? "opacity-0 rotate-90 scale-50"
+                    : "opacity-100 rotate-0 scale-100"
+                }`}
+              />
+              <X
+                size={20}
+                className={`absolute transition-all duration-300 ease-in-out ${
+                  isMobileMenuOpen
+                    ? "opacity-100 rotate-0 scale-100"
+                    : "opacity-0 -rotate-90 scale-50"
+                }`}
+              />
+            </button>
+
+            {/* Dropdown Menu Hamburger dengan Animasi Slide-Down & Fade */}
+            <div
+              className={`md:hidden absolute top-full left-0 right-0 bg-[#FDF3E7] border-b-2 border-[#4A3525] shadow-xl px-5 py-4 flex flex-col gap-2.5 z-40 origin-top transition-all duration-300 ease-out ${
+                isMobileMenuOpen
+                  ? "opacity-100 translate-y-0 scale-y-100 pointer-events-auto"
+                  : "opacity-0 -translate-y-3 scale-y-95 pointer-events-none"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => navigateTo(1)}
+                className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  screen === 1
+                    ? "bg-[#F6E4CE] border border-[#4A3525] translate-x-1"
+                    : "hover:bg-[#F6E4CE]/60 hover:translate-x-1"
+                }`}
+              >
+                🏠 Beranda & Pengenalan
+              </button>
+              <button
+                type="button"
+                onClick={() => navigateTo(2)}
+                className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  screen === 2
+                    ? "bg-[#F6E4CE] border border-[#4A3525] translate-x-1"
+                    : "hover:bg-[#F6E4CE]/60 hover:translate-x-1"
+                }`}
+              >
+                ✨ Tentang Jiwoo AI
+              </button>
+              <button
+                type="button"
+                onClick={() => navigateTo(3)}
+                className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                  screen === 3
+                    ? "bg-[#F6E4CE] border border-[#4A3525] translate-x-1"
+                    : "hover:bg-[#F6E4CE]/60 hover:translate-x-1"
+                }`}
+              >
+                🛡️ Fitur Utama CBT
+              </button>
+              <button
+                type="button"
+                onClick={() => navigateTo(isLoggedIn ? 5 : 4)}
+                className="w-full text-center mt-1 bg-[#F4A950] hover:bg-[#e5983e] text-[#4A3525] font-bold text-xs py-3 rounded-xl border-2 border-[#4A3525] shadow-[0_3px_0_#4A3525] active:translate-y-0.5 active:shadow-[0_1px_0_#4A3525] transition-all cursor-pointer"
+              >
+                {isLoggedIn
+                  ? "Kembali ke Ruang Konseling →"
+                  : "Masuk / Daftar Akun"}
               </button>
             </div>
           </header>
@@ -273,7 +372,13 @@ export default function App() {
         <div className="pointer-events-none absolute -bottom-12 right-12 w-36 h-36 md:w-56 md:h-56 rounded-full bg-[#F4A950]/40 animate-bubble-float" />
 
         <div className="relative z-10 flex-1 w-full h-full overflow-y-auto flex flex-col justify-center">
-          {screen === 1 && <WelcomeScreen onNext={() => setScreen(2)} />}
+          {screen === 1 && (
+            <WelcomeScreen
+              isLoggedIn={isLoggedIn}
+              onNext={() => setScreen(isLoggedIn ? 5 : 2)}
+              onReadGuide={() => setScreen(2)}
+            />
+          )}
           {screen === 2 && <OnboardingAbout onNext={() => setScreen(3)} />}
           {screen === 3 && (
             <OnboardingFeatures onNext={() => setScreen(isLoggedIn ? 5 : 4)} />

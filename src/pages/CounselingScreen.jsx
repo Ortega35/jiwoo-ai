@@ -78,11 +78,11 @@ export default function CounselingScreen({ setScreen }) {
   };
 
   return (
-    <div className="relative z-10 flex flex-col justify-between h-full w-full max-w-6xl mx-auto pt-6 pb-5 px-5 md:p-8 text-center">
+    <div className="relative z-10 flex flex-col justify-between h-full w-full max-w-6xl mx-auto pt-4 pb-4 px-5 md:p-8 text-center">
       {/* Kontainer Utama: 1 Kolom di HP, 2 Kolom Berdampingan di Laptop */}
-      <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 items-center my-auto">
-        {/* PANEL KIRI (Di Laptop): Panggung Karakter Jiwoo */}
-        <div className="md:col-span-5 flex flex-col items-center justify-center bg-white/60 md:bg-[#F6E4CE]/70 md:border-2 md:border-[#4A3525]/20 md:rounded-3xl md:p-8 md:h-full">
+      <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-8 items-center my-auto">
+        {/* PANEL KIRI: Transparan di HP, Kartu Krem di Laptop */}
+        <div className="md:col-span-5 flex flex-col items-center justify-center bg-transparent md:bg-[#F6E4CE]/70 md:border-2 md:border-[#4A3525]/20 md:rounded-3xl md:p-8 md:h-full">
           <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FDF3E7] border border-[#4A3525]/30 text-[11px] font-bold mb-4">
             <Sparkles size={12} className="text-[#F4A950]" />
             Status Jiwoo:{" "}
@@ -94,7 +94,7 @@ export default function CounselingScreen({ setScreen }) {
               src={jiwooMascot}
               alt="Jiwoo Mascot"
               draggable={false}
-              className={`w-28 h-28 md:w-52 md:h-52 object-contain transition-transform duration-300 ${
+              className={`w-66 h-66 md:w-52 md:h-52 object-contain transition-transform duration-300 ${
                 isListening
                   ? "scale-110 animate-bounce"
                   : isLoading
@@ -102,7 +102,6 @@ export default function CounselingScreen({ setScreen }) {
                     : "animate-jiwoo"
               }`}
             />
-            <div className="w-32 md:w-48 h-0.5 bg-[#4A3525] -mt-2" />
           </div>
 
           <p className="hidden md:block mt-4 text-xs text-[#4A3525]/75 max-w-xs">
@@ -119,7 +118,7 @@ export default function CounselingScreen({ setScreen }) {
           </button>
         </div>
 
-        {/* PANEL KANAN (Di Laptop): Ruang Balon Dialog, Kartu CBT, & Input Chat */}
+        {/* PANEL KANAN: Ruang Balon Dialog, Kartu CBT, & Input Chat */}
         <div className="md:col-span-7 flex flex-col justify-between h-full w-full max-w-md md:max-w-none mx-auto gap-4">
           <div className="flex flex-col items-center md:items-start w-full gap-3 my-auto">
             {/* Balon Ucapan Jiwoo */}
@@ -156,8 +155,8 @@ export default function CounselingScreen({ setScreen }) {
             )}
           </div>
 
-          {/* Kontrol Input Suara & Teks */}
-          <div className="w-full flex flex-col items-center gap-2.5 bg-white/70 md:p-4 md:rounded-3xl md:border md:border-[#4A3525]/20">
+          {/* Kontrol Input Suara & Teks: Transparan di HP, Kotak Putih Halus di Laptop */}
+          <div className="w-full flex flex-col items-center gap-2.5 bg-transparent md:bg-white/70 md:p-4 md:rounded-3xl md:border md:border-[#4A3525]/20">
             <button
               type="button"
               onClick={handleMicClick}
@@ -196,7 +195,7 @@ export default function CounselingScreen({ setScreen }) {
       </div>
 
       {/* Bottom Navbar otomatis hanya muncul di layar HP */}
-      <div className="w-full flex flex-col items-center">
+      <div className="w-full flex flex-col items-center mt-2">
         <BottomNavbar
           activeScreen={5}
           setScreen={setScreen}

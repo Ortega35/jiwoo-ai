@@ -1,50 +1,349 @@
+import { useState } from "react";
 import jiwooMascot from "../assets/jiwoo.svg";
+import { Sparkles } from "lucide-react";
 
-export default function WelcomeScreen({ onNext }) {
+export default function WelcomeScreen({ onNext, isLoggedIn }) {
+  const WHATSAPP_NUMBER = "6282338609452";
+
+  const [senderName, setSenderName] = useState("");
+  const [category, setCategory] = useState(
+    "Konsultasi Lanjut & Curhat Langsung",
+  );
+  const [rating, setRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [message, setMessage] = useState("");
+
+  const ratingLabels = {
+    1: "Perlu Banyak Perbaikan",
+    2: "Cukup Membantu",
+    3: "Bagus & Nyaman",
+    4: "Sangat Membantu!",
+    5: "Luar Biasa! Sangat Direkomendasikan",
+  };
+
+  const handleSendToWhatsApp = (e) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+
+    const starsVisual = "⭐".repeat(rating);
+    const formattedText =
+      `*HALO DEVELOPER JIWOO AI (SHAHANCODES)*%0A` +
+      `----------------------------------------%0A` +
+      `*Nama:* ${senderName.trim() || "Sahabat Jiwoo (Anonim)"}%0A` +
+      `*Kategori:* ${category}%0A` +
+      `*Penilaian Aplikasi:* ${starsVisual} (${rating}/5 - ${ratingLabels[rating]})%0A` +
+      `----------------------------------------%0A` +
+      `*Keluhan / Pesan Konsultasi & Feedback:*%0A` +
+      `${encodeURIComponent(message.trim())}`;
+
+    window.open(
+      `https://wa.me/${WHATSAPP_NUMBER}?text=${formattedText}`,
+      "_blank",
+    );
+  };
+
   return (
-    <div className="relative z-10 flex flex-col md:flex-row items-center justify-center h-full max-w-5xl mx-auto px-6 md:px-12 gap-8 md:gap-16 text-center md:text-left">
-      {/* Kolom Kiri (Di Laptop): Judul & Penjelasan */}
-      <div className="flex-1 flex flex-col items-center md:items-start order-2 md:order-1">
-        <span className="hidden md:inline-block px-3.5 py-1 mb-3 rounded-full bg-[#F4A950]/30 border border-[#4A3525]/30 text-xs font-bold text-[#4A3525]">
-          🐾 Teman Cerita Virtual Berbasis CBT
-        </span>
+    <div className="w-full h-full overflow-y-auto px-5 py-8 md:px-14 md:py-12 scroll-smooth">
+      <div className="max-w-5xl mx-auto flex flex-col gap-12 pb-16">
+        {/* 1. HERO SECTION */}
+        <section className="bg-[#F6E4CE]/90 border-2 border-[#4A3525] rounded-3xl p-6 md:p-10 shadow-[0_6px_0_#4A3525] flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex-1 text-center md:text-left space-y-4">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FDF3E7] border border-[#4A3525] text-xs font-bold text-[#4A3525]">
+              <Sparkles size={14} className="text-[#F4A950]" />
+              <span>Teman Cerita & Konseling Virtual Berbasis CBT</span>
+            </div>
 
-        <div className="w-full md:w-auto bg-[#EAE0D5] md:bg-transparent border-y-2 md:border-none border-[#4A3525] py-2.5 px-4 md:p-0 shadow-sm md:shadow-none animate-pop-2">
-          <h1 className="text-lg md:text-5xl font-bold text-[#4A3525] tracking-wide leading-tight">
-            Hello.. Jiwoo Is Here
-          </h1>
-        </div>
+            <h1 className="text-2xl md:text-4xl font-bold text-[#4A3525] leading-tight">
+              Ruang Aman untuk Meredakan{" "}
+              <span className="underline decoration-[#F4A950] decoration-4">
+                Overthinking
+              </span>{" "}
+              & Beban Pikiranmu.
+            </h1>
 
-        <p className="mt-4 text-xs md:text-base text-[#4A3525]/80 max-w-md leading-relaxed animate-pop-2">
-          Go ahead and tell us all your problems—we're here to listen. Ruang
-          curhat aman tanpa penghakiman yang siap menemanimu kapan saja.
-        </p>
+            <p className="text-xs md:text-sm text-[#4A3525]/80 font-sans leading-relaxed">
+              Tidak semua beban harus kamu pikul sendirian. Jiwoo hadir 24 jam
+              sebagai teman cerita yang siap mendengarkan, menjadi penengah yang
+              objektif, serta memberikan saran dan motivasi kapan pun kamu
+              membutuhkannya.
+            </p>
 
-        <div className="mt-6 flex flex-col items-center md:items-start gap-2 animate-pop-3">
-          <button
-            type="button"
-            onClick={onNext}
-            className="bg-[#F4A950] hover:bg-[#e5983e] active:scale-95 text-[#4A3525] font-bold text-xs md:text-sm py-2.5 px-10 md:py-3.5 md:px-12 rounded-full shadow-md border-2 border-[#4A3525] transition-all cursor-pointer"
+            <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-3">
+              <button
+                type="button"
+                onClick={onNext}
+                className="flex items-center gap-2 bg-[#F4A950] hover:bg-[#e5983e] text-[#4A3525] font-bold text-xs md:text-sm px-6 py-3.5 rounded-2xl border-2 border-[#4A3525] shadow-[0_4px_0_#4A3525] active:translate-y-0.5 active:shadow-[0_2px_0_#4A3525] transition-all cursor-pointer"
+              >
+                <span>
+                  {isLoggedIn
+                    ? "Kembali ke Ruang Konseling →"
+                    : "Mulai Sesi Bersama Jiwoo →"}
+                </span>
+              </button>
+
+              <a
+                href="#konsultasi-lanjut"
+                className="flex items-center gap-2 bg-[#FDF3E7] hover:bg-[#efe0ce] text-[#4A3525] font-bold text-xs md:text-sm px-5 py-3.5 rounded-2xl border-2 border-[#4A3525] transition-all"
+              >
+                <span>💬 Konsultasi Lanjut & Rating</span>
+              </a>
+            </div>
+          </div>
+
+          <div className="w-44 h-44 md:w-56 md:h-56 rounded-full bg-[#FDF3E7] border-2 border-[#4A3525] flex items-center justify-center p-6 shadow-inner shrink-0">
+            <img
+              src={jiwooMascot}
+              alt="Maskot Jiwoo AI"
+              className="w-full h-full object-contain drop-shadow-md"
+            />
+          </div>
+        </section>
+
+        {/* 2. TUJUAN & LATAR BELAKANG JIWOO AI */}
+        <section className="space-y-6">
+          <div className="text-center max-w-2xl mx-auto space-y-2">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-[#F4A950] bg-[#4A3525] px-3 py-1 rounded-full">
+              Mengapa Jiwoo Diciptakan?
+            </span>
+            <h2 className="text-xl md:text-2xl font-bold text-[#4A3525]">
+              Latar Belakang & Tujuan Jiwoo AI
+            </h2>
+          </div>
+
+          <div className="bg-[#FDF3E7] border-2 border-[#4A3525] rounded-3xl p-6 md:p-8 shadow-[0_4px_0_#4A3525] space-y-5">
+            <p className="text-xs md:text-sm text-[#4A3525]/90 font-sans leading-relaxed">
+              Aplikasi berbasis web <strong>Jiwoo AI</strong> dikembangkan
+              berangkat dari pengamatan nyata terhadap kondisi masyarakat saat
+              ini—khususnya kalangan <strong>Gen Z</strong>—yang semakin rentan
+              mengalami <em>overthinking</em>. Tekanan tersebut muncul dari
+              berbagai faktor kehidupan, terutama kecemasan berlebih dalam
+              memikirkan masa depan, akademik, maupun karier, yang diperberat
+              oleh sulitnya menemukan teman cerita yang bisa dipercaya tanpa
+              rasa takut dihakimi.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+              <div className="bg-[#F6E4CE]/70 p-4 rounded-2xl border border-[#4A3525]/30 space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-[#F4A950] border border-[#4A3525] flex items-center justify-center text-base">
+                  🤝
+                </div>
+                <h3 className="text-sm font-bold text-[#4A3525]">
+                  Teman Cerita & Penengah
+                </h3>
+                <p className="text-xs text-[#4A3525]/80 font-sans leading-relaxed">
+                  Hadir bagi mereka yang tidak memiliki tempat berbagi cerita,
+                  menjadi penengah yang menenangkan di tengah keramaian pikiran.
+                </p>
+              </div>
+
+              <div className="bg-[#F6E4CE]/70 p-4 rounded-2xl border border-[#4A3525]/30 space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-[#F4A950] border border-[#4A3525] flex items-center justify-center text-base">
+                  🧠
+                </div>
+                <h3 className="text-sm font-bold text-[#4A3525]">
+                  Saran & Motivasi Konseling
+                </h3>
+                <p className="text-xs text-[#4A3525]/80 font-sans leading-relaxed">
+                  Memberikan tanggapan empatik, saran rasional berbasis{" "}
+                  <em>Cognitive Behavioral Therapy (CBT)</em>, serta dorongan
+                  motivasi yang membangun.
+                </p>
+              </div>
+
+              <div className="bg-[#F6E4CE]/70 p-4 rounded-2xl border border-[#4A3525]/30 space-y-2">
+                <div className="w-9 h-9 rounded-xl bg-[#F4A950] border border-[#4A3525] flex items-center justify-center text-base">
+                  🛡️
+                </div>
+                <h3 className="text-sm font-bold text-[#4A3525]">
+                  Meringankan Beban Masalah
+                </h3>
+                <p className="text-xs text-[#4A3525]/80 font-sans leading-relaxed">
+                  Diharapkan mampu membantu mengurai benang kusut di kepala dan
+                  meringankan beban emosional pengguna secara aman dan rahasia.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 3. PROFIL PENGEMBANG (ABOUT DEVELOPER) */}
+        <section className="space-y-6">
+          <div className="text-center max-w-2xl mx-auto space-y-2">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-[#F4A950] bg-[#4A3525] px-3 py-1 rounded-full">
+              About Developer
+            </span>
+            <h2 className="text-xl md:text-2xl font-bold text-[#4A3525]">
+              Sosok di Balik Pengembangan Jiwoo AI
+            </h2>
+          </div>
+
+          <div className="bg-[#F6E4CE] border-2 border-[#4A3525] rounded-3xl p-6 md:p-8 shadow-[0_5px_0_#4A3525] flex flex-col md:flex-row items-center gap-6 md:gap-8">
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <div className="w-28 h-28 md:w-32 md:h-32 rounded-3xl bg-[#FDF3E7] border-2 border-[#4A3525] overflow-hidden shadow-md flex items-center justify-center">
+                <img
+                  src="https://github.com/shahansyah.png"
+                  alt="Muhammad Shahan Syah Naufal Abdullah"
+                  onError={(e) => {
+                    e.currentTarget.src = jiwooMascot;
+                  }}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-[#F4A950] border border-[#4A3525]">
+                HanCodes
+              </span>
+            </div>
+
+            <div className="flex-1 text-center md:text-left space-y-3">
+              <div>
+                <h3 className="text-lg md:text-xl font-bold text-[#4A3525]">
+                  Muhammad Shahan Syah Naufal Abdullah
+                </h3>
+                <p className="text-xs font-bold text-[#4A3525]/70 font-sans">
+                  Full-Stack Web & Mobile Developer • Informatics Engineering
+                </p>
+              </div>
+
+              <p className="text-xs md:text-sm text-[#4A3525]/85 font-sans leading-relaxed">
+                Aplikasi <strong>Jiwoo AI</strong> dirancang dan dikembangkan
+                secara penuh oleh{" "}
+                <strong>Muhammad Shahan Syah Naufal Abdullah</strong>. Lahir di{" "}
+                <strong>Garut pada tanggal 7 April 2005</strong>, saat ini
+                beliau sedang menempuh pendidikan sarjana pada program studi{" "}
+                <strong>
+                  Teknik Informatika di Universitas Darussalam Gontor (UNIDA
+                  Gontor)
+                </strong>
+                . Melalui proyek ini, ia menggabungkan teknologi kecerdasan
+                buatan modern dengan kepedulian terhadap kesehatan mental
+                generasi muda.
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 pt-1 font-sans">
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-[#FDF3E7] px-3 py-1.5 rounded-xl border border-[#4A3525]/30">
+                  📍 Garut, 7 April 2005
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold bg-[#FDF3E7] px-3 py-1.5 rounded-xl border border-[#4A3525]/30">
+                  🎓 Teknik Informatika - UNIDA Gontor
+                </span>
+                <a
+                  href="https://github.com/shahansyah"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold bg-[#4A3525] text-[#FDF3E7] hover:bg-[#352519] px-3 py-1.5 rounded-xl transition-all"
+                >
+                  💻 github.com/shahansyah
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 4. LAYANAN KONSULTASI LANJUT & PENILAIAN */}
+        <section id="konsultasi-lanjut" className="space-y-6">
+          <div className="text-center max-w-2xl mx-auto space-y-2">
+            <span className="text-[11px] font-bold uppercase tracking-widest text-[#F4A950] bg-[#4A3525] px-3 py-1 rounded-full">
+              Layanan Lanjutan & Ulasan
+            </span>
+            <h2 className="text-xl md:text-2xl font-bold text-[#4A3525]">
+              Konsultasi Lanjut & Penilaian Aplikasi
+            </h2>
+            <p className="text-xs text-[#4A3525]/75 font-sans">
+              Merasa butuh teman diskusi manusia secara langsung karena kurang
+              puas dengan respons AI, atau ingin memberikan ulasan bintang untuk
+              Jiwoo AI? Kirimkan keluhan dan penilaianmu langsung ke WhatsApp
+              pengembang di bawah ini.
+            </p>
+          </div>
+
+          <form
+            onSubmit={handleSendToWhatsApp}
+            className="bg-[#FDF3E7] border-2 border-[#4A3525] rounded-3xl p-6 md:p-8 shadow-[0_6px_0_#4A3525] space-y-6"
           >
-            MULAI SEKARANG →
-          </button>
-          <span className="text-[10px] md:text-xs text-[#4A3525]/60 italic">
-            Click Here For Next
-          </span>
-        </div>
-      </div>
+            <div className="bg-[#F6E4CE]/80 border border-[#4A3525]/30 rounded-2xl p-5 text-center space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-[#4A3525]/70">
+                Beri Penilaian Pengalamanmu Menggunakan Jiwoo AI
+              </p>
+              <div className="flex items-center justify-center gap-2 py-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setRating(star)}
+                    onMouseEnter={() => setHoverRating(star)}
+                    onMouseLeave={() => setHoverRating(0)}
+                    className="p-1 text-2xl transition-transform hover:scale-125 cursor-pointer"
+                  >
+                    {star <= (hoverRating || rating) ? "⭐" : "☆"}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs font-bold text-[#4A3525]">
+                {rating} / 5 Bintang —{" "}
+                <span className="text-[#4A3525]/80 font-sans">
+                  {ratingLabels[hoverRating || rating]}
+                </span>
+              </p>
+            </div>
 
-      {/* Kolom Kanan (Di Laptop): Maskot Interaktif */}
-      <div className="flex-1 flex flex-col items-center justify-center order-1 md:order-2 animate-pop-1">
-        <div className="relative flex flex-col items-center">
-          <div className="hidden md:block absolute -inset-6 rounded-full bg-[#F4A950]/25 blur-2xl -z-10" />
-          <img
-            src={jiwooMascot}
-            alt="Jiwoo Mascot"
-            draggable={false}
-            className="w-66 h-66 md:w-72 md:h-72 object-contain animate-jiwoo"
-          />
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-sans">
+              <div className="space-y-1.5 text-left">
+                <label className="text-xs font-bold text-[#4A3525]">
+                  Nama Panggilan (Opsional / Boleh Anonim)
+                </label>
+                <input
+                  type="text"
+                  value={senderName}
+                  onChange={(e) => setSenderName(e.target.value)}
+                  placeholder="Contoh: Raka / Hamba Allah"
+                  className="w-full px-4 py-3 rounded-2xl bg-white border-2 border-[#4A3525]/40 focus:border-[#4A3525] text-xs outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5 text-left">
+                <label className="text-xs font-bold text-[#4A3525]">
+                  Tujuan Pesan
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl bg-white border-2 border-[#4A3525]/40 focus:border-[#4A3525] text-xs outline-none cursor-pointer"
+                >
+                  <option value="Konsultasi Lanjut & Curhat Langsung">
+                    Konsultasi Lanjut & Curhat (Kurang Puas dengan AI)
+                  </option>
+                  <option value="Ulasan & Feedback Pengembangan Aplikasi">
+                    Ulasan & Saran Pengembangan Aplikasi Jiwoo AI
+                  </option>
+                  <option value="Laporan Kendala Teknis / Bug">
+                    Laporan Kendala Teknis / Bug
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5 text-left font-sans">
+              <label className="text-xs font-bold text-[#4A3525]">
+                Tuliskan Keluhan, Cerita Lanjutan, atau Ulasanmu *
+              </label>
+              <textarea
+                rows={4}
+                required
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Ceritakan keluhan atau masalah yang ingin kamu konsultasikan lebih lanjut, atau tuliskan masukanmu untuk Jiwoo AI di sini..."
+                className="w-full p-4 rounded-2xl bg-white border-2 border-[#4A3525]/40 focus:border-[#4A3525] text-xs outline-none resize-none leading-relaxed"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full flex items-center justify-center gap-2 bg-[#F4A950] hover:bg-[#e5983e] text-[#4A3525] font-bold text-xs md:text-sm py-4 rounded-2xl border-2 border-[#4A3525] shadow-[0_4px_0_#4A3525] active:translate-y-0.5 active:shadow-[0_2px_0_#4A3525] transition-all cursor-pointer"
+            >
+              <span>🚀 Kirim Keluhan & Penilaian ke WhatsApp</span>
+            </button>
+          </form>
+        </section>
       </div>
     </div>
   );
