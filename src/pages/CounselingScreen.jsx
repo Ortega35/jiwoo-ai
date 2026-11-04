@@ -94,7 +94,7 @@ export default function CounselingScreen({ setScreen }) {
               src={jiwooMascot}
               alt="Jiwoo Mascot"
               draggable={false}
-              className={`w-52 h-52 sm:w-60 sm:h-60 md:w-52 md:h-52 object-contain transition-transform duration-300 ${
+              className={`w-52 h-52 sm:w-60 sm:h-60 md:w-60 md:h-60 object-contain transition-transform duration-300 ${
                 isListening
                   ? "scale-110 animate-bounce"
                   : isLoading

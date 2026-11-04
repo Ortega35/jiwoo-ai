@@ -1,141 +1,200 @@
-import jiwooMascot from "../assets/jiwoo.svg";
-import {
-  UserPlus,
-  LogIn,
-  ArrowLeft,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 
-export default function AuthScreen({ onGoSignUp, onGoSignIn, onBack }) {
-  return (
-    <div className="relative z-10 flex items-center justify-center h-full w-full px-6 md:px-10 py-6 animate-pop-1">
-      {/* TAMPILAN HP / TABLET KECIL (Tetap mempertahankan desain balon bicara vertikal aslimu) */}
-      <div className="md:hidden flex flex-col items-center justify-center text-center w-full">
-        <div className="relative bg-white border-2 border-[#4A3525] rounded-3xl px-5 py-3.5 mb-3 shadow-md max-w-xs">
-          <p className="text-xs font-bold text-[#4A3525] leading-relaxed">
-            Sudah Kenal Sama Jiwoo kan? <br />
-            Daftar dulu Ya.. jika belum punya akun..💕
-          </p>
-          <div className="absolute -bottom-2.5 left-10 w-4 h-4 bg-white border-b-2 border-r-2 border-[#4A3525] rotate-45" />
-        </div>
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-        <img
-          src={jiwooMascot}
-          alt="Jiwoo Mascot"
-          draggable={false}
-          className="w-36 h-36 object-contain animate-jiwoo"
-        />
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-        <div className="flex flex-col gap-2.5 w-48 mt-5">
-          <button
-            type="button"
-            onClick={onGoSignUp}
-            className="w-full bg-[#F4A950] hover:bg-[#e5983e] active:scale-95 text-[#4A3525] font-bold text-xs py-2.5 rounded-full shadow border-2 border-[#4A3525] cursor-pointer transition-all"
-          >
-            Sign Up
-          </button>
-          <button
-            type="button"
-            onClick={onGoSignIn}
-            className="w-full bg-white hover:bg-[#FDF3E7] active:scale-95 text-[#4A3525] font-bold text-xs py-2.5 rounded-full shadow border-2 border-[#4A3525] cursor-pointer transition-all"
-          >
-            Sign In
-          </button>
-        </div>
+const SESSION_KEY = "jiwoo_ephemeral_user";
+const OAUTH_INTENT_KEY = "jiwoo_oauth_intent";
 
-        <button
-          type="button"
-          onClick={onBack}
-          className="mt-4 text-[11px] font-semibold text-[#4A3525]/80 underline cursor-pointer hover:text-[#4A3525]"
-        >
-          ← Back to Features
-        </button>
-      </div>
+const FALLBACK_USER = {
+  name: "Teman Jiwoo",
+  username: "@temanjiwoo",
+  email: "",
+  birthDate: "",
+  location: "",
+  avatar: null,
+  authMethod: "Belum Login",
+  isGuest: true,
+};
 
-      {/* TAMPILAN LAPTOP / DESKTOP (Desain Web 2 Kolom Split-Card yang Serasi) */}
-      <div className="hidden md:grid w-full max-w-4xl bg-white/95 border-2 border-[#4A3525] rounded-3xl shadow-2xl overflow-hidden grid-cols-12">
-        {/* Panel Kiri: Panggung Maskot & Balon Sapaan */}
-        <div className="col-span-6 bg-[#F6E4CE] border-r-2 border-[#4A3525]/15 p-10 flex flex-col items-center justify-between text-center">
-          <button
-            type="button"
-            onClick={onBack}
-            className="self-start inline-flex items-center gap-1.5 text-xs font-bold text-[#4A3525]/75 hover:text-[#4A3525] cursor-pointer transition-colors"
-          >
-            <ArrowLeft size={15} /> Kembali ke Fitur
-          </button>
+// Cek apakah user Google baru saja ter-registrasi otomatis padahal menekan tombol di halaman Sign In
+export async function validateOAuthSessionIntent(supaUser) {
+  if (!supaUser) return { valid: false, error: null };
 
-          <div className="my-4 flex flex-col items-center">
-            <div className="relative bg-white border-2 border-[#4A3525] rounded-3xl px-6 py-4 mb-4 shadow-md max-w-xs">
-              <p className="text-xs font-bold text-[#4A3525] leading-relaxed">
-                Sudah Kenal Sama Jiwoo kan? <br />
-                Daftar dulu Ya.. jika belum punya akun..💕
-              </p>
-              <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-white border-b-2 border-r-2 border-[#4A3525] rotate-45" />
-            </div>
+  const intent = sessionStorage.getItem(OAUTH_INTENT_KEY);
+  sessionStorage.removeItem(OAUTH_INTENT_KEY);
 
-            <img
-              src={jiwooMascot}
-              alt="Jiwoo Mascot"
-              draggable={false}
-              className="w-44 h-44 object-contain animate-jiwoo"
-            />
-            <div className="w-44 h-0.5 bg-[#4A3525] -mt-2" />
-          </div>
+  const meta = supaUser.user_metadata || {};
+  const provider = supaUser.app_metadata?.provider || "email";
 
-          <div className="flex items-center gap-2 text-[11px] font-bold text-[#4A3525]/80 bg-[#FDF3E7] px-4 py-2.5 rounded-2xl border border-[#4A3525]/20">
-            <ShieldCheck size={16} className="text-green-700 shrink-0" />
-            <span>Terintegrasi dengan Google OAuth 2.0 & Supabase</span>
-          </div>
-        </div>
+  if (provider === "google") {
+    const createdAt = new Date(supaUser.created_at).getTime();
+    const now = Date.now();
+    // Akun dianggap baru dibuat otomatis jika usianya kurang dari 15 detik dan belum punya flag isRegistered
+    const isJustCreated = now - createdAt < 15000 && !meta.isRegistered;
 
-        {/* Panel Kanan: Pilihan Masuk atau Daftar */}
-        <div className="col-span-6 p-10 flex flex-col justify-center text-left">
-          <span className="inline-flex items-center gap-1.5 w-fit px-3 py-1 rounded-full bg-[#F4A950]/35 border border-[#4A3525]/20 text-[11px] font-bold text-[#4A3525] mb-3">
-            <Sparkles size={12} /> Akses Ruang Konseling
-          </span>
+    if (intent === "signin" && isJustCreated) {
+      // Tolak login karena belum pernah Sign Up
+      sessionStorage.removeItem(SESSION_KEY);
+      await supabase.auth.signOut();
+      return {
+        valid: false,
+        error:
+          "Akun Google ini belum terdaftar di Jiwoo AI. Silakan daftar melalui menu Sign Up terlebih dahulu!",
+      };
+    }
 
-          <h2 className="text-2xl font-bold text-[#4A3525] leading-snug">
-            Mulai Sesi Curhatmu Sekarang
-          </h2>
-          <p className="mt-2 text-xs text-[#4A3525]/75 leading-relaxed mb-6">
-            Pilih metode akses di bawah ini. Kamu bisa menggunakan akun Google
-            aslimu agar foto profil dan namamu langsung terhubung otomatis.
-          </p>
+    // Jika masuk lewat Sign Up (atau sudah valid), tandai bahwa akun ini resmi terdaftar
+    if (!meta.isRegistered) {
+      await supabase.auth.updateUser({
+        data: { isRegistered: true },
+      });
+    }
+  }
 
-          <div className="flex flex-col gap-3.5 w-full">
-            <button
-              type="button"
-              onClick={onGoSignUp}
-              className="w-full bg-[#F4A950] hover:bg-[#e5983e] active:scale-95 text-[#4A3525] font-bold text-sm py-3.5 px-6 rounded-2xl shadow-md border-2 border-[#4A3525] flex items-center justify-between cursor-pointer transition-all"
-            >
-              <span className="flex items-center gap-2.5">
-                <UserPlus size={18} />
-                Buat Akun Baru (Sign Up)
-              </span>
-              <span>→</span>
-            </button>
+  return { valid: true, error: null };
+}
 
-            <button
-              type="button"
-              onClick={onGoSignIn}
-              className="w-full bg-[#FDF3E7] hover:bg-[#F6E4CE] active:scale-95 text-[#4A3525] font-bold text-sm py-3.5 px-6 rounded-2xl shadow-sm border-2 border-[#4A3525] flex items-center justify-between cursor-pointer transition-all"
-            >
-              <span className="flex items-center gap-2.5">
-                <LogIn size={18} />
-                Sudah Punya Akun (Sign In)
-              </span>
-              <span>→</span>
-            </button>
-          </div>
+export function syncSupabaseUser(supaUser) {
+  if (!supaUser) {
+    sessionStorage.removeItem(SESSION_KEY);
+    return null;
+  }
 
-          <p className="mt-6 text-[11px] text-[#4A3525]/65 leading-relaxed">
-            💡 <strong>Tips Privasi:</strong> Hanya identitas login dasar yang
-            diverifikasi. Seluruh percakapan konselingmu tetap tidak disimpan di
-            database mana pun.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+  const meta = supaUser.user_metadata || {};
+  const provider = supaUser.app_metadata?.provider || "email";
+  const cleanName =
+    meta.full_name ||
+    meta.name ||
+    supaUser.email?.split("@")[0] ||
+    "Teman Jiwoo";
+
+  const isGoogle = provider === "google";
+  const hasEdited = Boolean(meta.profileEdited);
+
+  const rawBirthDate =
+    isGoogle && !hasEdited
+      ? ""
+      : meta.birthDate && meta.birthDate !== "Belum diatur"
+        ? meta.birthDate
+        : "";
+
+  const rawLocation =
+    isGoogle && !hasEdited
+      ? ""
+      : meta.location && meta.location !== "Belum diatur"
+        ? meta.location
+        : "";
+
+  const userData = {
+    id: supaUser.id,
+    name: cleanName,
+    username: "@" + (supaUser.email ? supaUser.email.split("@")[0] : "user"),
+    email: supaUser.email,
+    avatar: meta.avatar_url || meta.picture || null,
+    birthDate: rawBirthDate,
+    location: rawLocation,
+    authMethod: isGoogle ? "Google OAuth 2.0 (Verified)" : "Jiwoo Email Auth",
+    isGuest: false,
+  };
+
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify(userData));
+  return userData;
+}
+
+// 1. Login / Sign Up dengan Google (Menerima mode: "signin" atau "signup")
+export async function loginWithGoogleOAuth(mode = "signup") {
+  sessionStorage.setItem(OAUTH_INTENT_KEY, mode);
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: window.location.origin,
+      queryParams: {
+        prompt: "select_account",
+      },
+    },
+  });
+  if (error) throw new Error(error.message);
+}
+
+// 2. Sign Up dengan Email & Password Manual
+export async function registerSocialUser({
+  name,
+  email,
+  password,
+  birthDate = "",
+  location = "",
+}) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: name,
+        birthDate: birthDate.trim(),
+        location: location.trim(),
+        profileEdited: Boolean(birthDate.trim() || location.trim()),
+        isRegistered: true,
+      },
+    },
+  });
+  if (error) throw new Error(error.message);
+  return syncSupabaseUser(data.user);
+}
+
+// 3. Sign In dengan Email & Password Manual (Hanya akun terdaftar yang bisa masuk)
+export async function loginSocialUser({ email, password }) {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+  if (error) {
+    throw new Error(
+      "Akun belum terdaftar atau password salah. Silakan Sign Up terlebih dahulu!",
+    );
+  }
+  return syncSupabaseUser(data.user);
+}
+
+// 4. Update Biodata User
+export async function updateUserProfile(updates = {}) {
+  const { data, error } = await supabase.auth.updateUser({
+    data: {
+      full_name: updates.name?.trim() || "",
+      birthDate: updates.birthDate?.trim() || "",
+      location: updates.location?.trim() || "",
+      profileEdited: true,
+      isRegistered: true,
+    },
+  });
+
+  if (error) throw new Error(error.message);
+  return syncSupabaseUser(data.user);
+}
+
+// 5. Ambil User Aktif
+export function getCurrentUser() {
+  try {
+    const saved = sessionStorage.getItem(SESSION_KEY);
+    if (!saved) return FALLBACK_USER;
+    const parsed = JSON.parse(saved);
+    return {
+      ...FALLBACK_USER,
+      ...parsed,
+      name: parsed?.name || FALLBACK_USER.name,
+      birthDate: parsed?.birthDate ?? "",
+      location: parsed?.location ?? "",
+      isGuest: false,
+    };
+  } catch {
+    return FALLBACK_USER;
+  }
+}
+
+// 6. Logout
+export async function logoutUser() {
+  sessionStorage.removeItem(SESSION_KEY);
+  await supabase.auth.signOut();
 }

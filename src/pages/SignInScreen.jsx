@@ -31,7 +31,7 @@ export default function SignInScreen({
     setIsLoading(true);
     setErrorMsg("");
     try {
-      await loginWithGoogleOAuth();
+      await loginWithGoogleOAuth("signin");
     } catch (err) {
       setErrorMsg(err.message || "Gagal menghubungkan ke Google.");
       setIsLoading(false);
