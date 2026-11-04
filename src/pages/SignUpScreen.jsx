@@ -42,7 +42,7 @@ export default function SignUpScreen({
     setIsLoading(true);
     setErrorMsg("");
     try {
-      await loginWithGoogleOAuth();
+      await loginWithGoogleOAuth("signup");
     } catch (err) {
       setErrorMsg(err.message || "Gagal menghubungkan ke Google.");
       setIsLoading(false);

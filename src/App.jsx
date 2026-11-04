@@ -13,6 +13,7 @@ import {
   syncSupabaseUser,
   getCurrentUser,
   logoutUser,
+  validateOAuthSessionIntent,
 } from "./services/authService";
 import {
   MessageCircleHeart,
@@ -33,15 +34,29 @@ export default function App() {
   const isInitialAuthChecked = useRef(false);
   const scrollContainerRef = useRef(null);
 
+  // Jangan lupa tambahkan validateOAuthSessionIntent di import "./services/authService" paling atas App.jsx!
   useEffect(() => {
+    const handleAuthUser = async (supaUser) => {
+      const check = await validateOAuthSessionIntent(supaUser);
+      if (!check.valid) {
+        isInitialAuthChecked.current = false;
+        setCurrentUser(getCurrentUser());
+        alert(check.error);
+        setScreen(41); // Arahkan langsung ke halaman Sign Up (41)
+        return;
+      }
+
+      const synced = syncSupabaseUser(supaUser);
+      setCurrentUser(synced);
+      if (!isInitialAuthChecked.current) {
+        isInitialAuthChecked.current = true;
+        setScreen(5);
+      }
+    };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        const synced = syncSupabaseUser(session.user);
-        setCurrentUser(synced);
-        if (!isInitialAuthChecked.current) {
-          isInitialAuthChecked.current = true;
-          setScreen(5);
-        }
+        handleAuthUser(session.user);
       }
     });
 
@@ -49,12 +64,7 @@ export default function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
-        const synced = syncSupabaseUser(session.user);
-        setCurrentUser(synced);
-        if (!isInitialAuthChecked.current) {
-          isInitialAuthChecked.current = true;
-          setScreen(5);
-        }
+        handleAuthUser(session.user);
       } else if (event === "SIGNED_OUT") {
         isInitialAuthChecked.current = false;
         setCurrentUser(getCurrentUser());
@@ -63,7 +73,6 @@ export default function App() {
 
     return () => subscription.unsubscribe();
   }, []);
-
   // Reset scroll ke paling atas setiap kali berpindah halaman (screen)
   useEffect(() => {
     if (scrollContainerRef.current) {
