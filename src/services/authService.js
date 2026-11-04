@@ -10,11 +10,12 @@ const SESSION_KEY = "jiwoo_ephemeral_user";
 const FALLBACK_USER = {
   name: "Teman Jiwoo",
   username: "@temanjiwoo",
-  email: "user@jiwoo.app",
-  birthDate: "Belum diatur",
-  location: "Indonesia",
+  email: "",
+  birthDate: "",
+  location: "",
   avatar: null,
   authMethod: "Belum Login",
+  isGuest: true,
 };
 
 // Mengubah data asli dari Google / Supabase ke format profil Jiwoo
@@ -32,49 +33,72 @@ export function syncSupabaseUser(supaUser) {
     supaUser.email?.split("@")[0] ||
     "Teman Jiwoo";
 
+  // Jika login via Google dan user BELUM pernah klik "Simpan Profil" (meta.profileEdited !== true),
+  // pastikan birthDate & location benar-benar kosong ("")
+  const isGoogle = provider === "google";
+  const hasEdited = Boolean(meta.profileEdited);
+
+  const rawBirthDate =
+    isGoogle && !hasEdited
+      ? ""
+      : meta.birthDate && meta.birthDate !== "Belum diatur"
+        ? meta.birthDate
+        : "";
+
+  const rawLocation =
+    isGoogle && !hasEdited
+      ? ""
+      : meta.location && meta.location !== "Belum diatur"
+        ? meta.location
+        : "";
+
   const userData = {
     id: supaUser.id,
     name: cleanName,
     username: "@" + (supaUser.email ? supaUser.email.split("@")[0] : "user"),
     email: supaUser.email,
-    // Foto profil asli dari akun Google otomatis masuk ke sini
     avatar: meta.avatar_url || meta.picture || null,
-    birthDate: meta.birthDate || "07 April 2005",
-    location: meta.location || "Indonesia",
-    authMethod:
-      provider === "google"
-        ? "Google OAuth 2.0 (Verified)"
-        : "Jiwoo Email Auth",
+    birthDate: rawBirthDate,
+    location: rawLocation,
+    authMethod: isGoogle ? "Google OAuth 2.0 (Verified)" : "Jiwoo Email Auth",
+    isGuest: false,
   };
 
   sessionStorage.setItem(SESSION_KEY, JSON.stringify(userData));
   return userData;
 }
 
-// 1. Login & Sign Up dengan Akun Google Asli (Membuka halaman resmi accounts.google.com)
+// 1. Login & Sign Up dengan Akun Google Asli
 export async function loginWithGoogleOAuth() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo: window.location.origin,
       queryParams: {
-        prompt: "select_account", // Selalu memunculkan pilihan akun Google seperti di Dicoding
+        prompt: "select_account",
       },
     },
   });
   if (error) throw new Error(error.message);
 }
 
-// 2. Sign Up dengan Email & Password Asli ke Supabase
-export async function registerSocialUser({ name, email, password }) {
+// 2. Sign Up dengan Email & Password Asli ke Supabase (Manual)
+export async function registerSocialUser({
+  name,
+  email,
+  password,
+  birthDate = "",
+  location = "",
+}) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
         full_name: name,
-        birthDate: "Belum diatur",
-        location: "Indonesia",
+        birthDate: birthDate.trim(),
+        location: location.trim(),
+        profileEdited: true,
       },
     },
   });
@@ -96,9 +120,10 @@ export async function loginSocialUser({ email, password }) {
 export async function updateUserProfile(updates = {}) {
   const { data, error } = await supabase.auth.updateUser({
     data: {
-      full_name: updates.name,
-      birthDate: updates.birthDate,
-      location: updates.location,
+      full_name: updates.name?.trim() || "",
+      birthDate: updates.birthDate?.trim() || "",
+      location: updates.location?.trim() || "",
+      profileEdited: true, // Tandai bahwa user sudah mengedit profilnya secara manual
     },
   });
 
@@ -116,6 +141,9 @@ export function getCurrentUser() {
       ...FALLBACK_USER,
       ...parsed,
       name: parsed?.name || FALLBACK_USER.name,
+      birthDate: parsed?.birthDate ?? "",
+      location: parsed?.location ?? "",
+      isGuest: false,
     };
   } catch {
     return FALLBACK_USER;

@@ -42,18 +42,25 @@ export default function WelcomeScreen({ onNext, isLoggedIn }) {
     );
   };
 
+  const scrollToSection = (id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
-    <div className="w-full h-full overflow-y-auto px-5 py-8 md:px-14 md:py-12 scroll-smooth">
-      <div className="max-w-5xl mx-auto flex flex-col gap-12 pb-16">
+    <div className="w-full px-4 sm:px-6 py-6 md:px-14 md:py-12">
+      <div className="max-w-5xl mx-auto flex flex-col gap-8 md:gap-12 pb-16">
         {/* 1. HERO SECTION */}
-        <section className="bg-[#F6E4CE]/90 border-2 border-[#4A3525] rounded-3xl p-6 md:p-10 shadow-[0_6px_0_#4A3525] flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex-1 text-center md:text-left space-y-4">
+        <section className="bg-[#F6E4CE]/90 border-2 border-[#4A3525] rounded-3xl p-5 sm:p-6 md:p-10 shadow-[0_6px_0_#4A3525] flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
+          <div className="flex-1 text-center md:text-left space-y-3.5">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#FDF3E7] border border-[#4A3525] text-xs font-bold text-[#4A3525]">
               <Sparkles size={14} className="text-[#F4A950]" />
               <span>Teman Cerita & Konseling Virtual Berbasis CBT</span>
             </div>
 
-            <h1 className="text-2xl md:text-4xl font-bold text-[#4A3525] leading-tight">
+            <h1 className="text-xl sm:text-2xl md:text-4xl font-bold text-[#4A3525] leading-tight">
               Ruang Aman untuk Meredakan{" "}
               <span className="underline decoration-[#F4A950] decoration-4">
                 Overthinking
@@ -81,16 +88,17 @@ export default function WelcomeScreen({ onNext, isLoggedIn }) {
                 </span>
               </button>
 
-              <a
-                href="#konsultasi-lanjut"
-                className="flex items-center gap-2 bg-[#FDF3E7] hover:bg-[#efe0ce] text-[#4A3525] font-bold text-xs md:text-sm px-5 py-3.5 rounded-2xl border-2 border-[#4A3525] transition-all"
+              <button
+                type="button"
+                onClick={() => scrollToSection("konsultasi-lanjut")}
+                className="flex items-center gap-2 bg-[#FDF3E7] hover:bg-[#efe0ce] text-[#4A3525] font-bold text-xs md:text-sm px-5 py-3.5 rounded-2xl border-2 border-[#4A3525] transition-all cursor-pointer"
               >
                 <span>💬 Konsultasi Lanjut & Rating</span>
-              </a>
+              </button>
             </div>
           </div>
 
-          <div className="w-44 h-44 md:w-56 md:h-56 rounded-full bg-[#FDF3E7] border-2 border-[#4A3525] flex items-center justify-center p-6 shadow-inner shrink-0">
+          <div className="w-36 h-36 sm:w-44 sm:h-44 md:w-56 md:h-56 rounded-full bg-[#FDF3E7] border-2 border-[#4A3525] flex items-center justify-center p-5 shadow-inner shrink-0">
             <img
               src={jiwooMascot}
               alt="Maskot Jiwoo AI"
@@ -110,7 +118,7 @@ export default function WelcomeScreen({ onNext, isLoggedIn }) {
             </h2>
           </div>
 
-          <div className="bg-[#FDF3E7] border-2 border-[#4A3525] rounded-3xl p-6 md:p-8 shadow-[0_4px_0_#4A3525] space-y-5">
+          <div className="bg-[#FDF3E7] border-2 border-[#4A3525] rounded-3xl p-5 sm:p-6 md:p-8 shadow-[0_4px_0_#4A3525] space-y-5">
             <p className="text-xs md:text-sm text-[#4A3525]/90 font-sans leading-relaxed">
               Aplikasi berbasis web <strong>Jiwoo AI</strong> dikembangkan
               berangkat dari pengamatan nyata terhadap kondisi masyarakat saat
@@ -177,7 +185,7 @@ export default function WelcomeScreen({ onNext, isLoggedIn }) {
             </h2>
           </div>
 
-          <div className="bg-[#F6E4CE] border-2 border-[#4A3525] rounded-3xl p-6 md:p-8 shadow-[0_5px_0_#4A3525] flex flex-col md:flex-row items-center gap-6 md:gap-8">
+          <div className="bg-[#F6E4CE] border-2 border-[#4A3525] rounded-3xl p-5 sm:p-6 md:p-8 shadow-[0_5px_0_#4A3525] flex flex-col md:flex-row items-center gap-6 md:gap-8">
             <div className="flex flex-col items-center gap-2 shrink-0">
               <div className="w-28 h-28 md:w-32 md:h-32 rounded-3xl bg-[#FDF3E7] border-2 border-[#4A3525] overflow-hidden shadow-md flex items-center justify-center">
                 <img
@@ -196,7 +204,7 @@ export default function WelcomeScreen({ onNext, isLoggedIn }) {
 
             <div className="flex-1 text-center md:text-left space-y-3">
               <div>
-                <h3 className="text-lg md:text-xl font-bold text-[#4A3525]">
+                <h3 className="text-base sm:text-lg md:text-xl font-bold text-[#4A3525]">
                   Muhammad Shahan Syah Naufal Abdullah
                 </h3>
                 <p className="text-xs font-bold text-[#4A3525]/70 font-sans">
@@ -240,7 +248,7 @@ export default function WelcomeScreen({ onNext, isLoggedIn }) {
         </section>
 
         {/* 4. LAYANAN KONSULTASI LANJUT & PENILAIAN */}
-        <section id="konsultasi-lanjut" className="space-y-6">
+        <section id="konsultasi-lanjut" className="space-y-6 pt-2">
           <div className="text-center max-w-2xl mx-auto space-y-2">
             <span className="text-[11px] font-bold uppercase tracking-widest text-[#F4A950] bg-[#4A3525] px-3 py-1 rounded-full">
               Layanan Lanjutan & Ulasan
@@ -258,9 +266,9 @@ export default function WelcomeScreen({ onNext, isLoggedIn }) {
 
           <form
             onSubmit={handleSendToWhatsApp}
-            className="bg-[#FDF3E7] border-2 border-[#4A3525] rounded-3xl p-6 md:p-8 shadow-[0_6px_0_#4A3525] space-y-6"
+            className="bg-[#FDF3E7] border-2 border-[#4A3525] rounded-3xl p-5 sm:p-6 md:p-8 shadow-[0_6px_0_#4A3525] space-y-6"
           >
-            <div className="bg-[#F6E4CE]/80 border border-[#4A3525]/30 rounded-2xl p-5 text-center space-y-2">
+            <div className="bg-[#F6E4CE]/80 border border-[#4A3525]/30 rounded-2xl p-4 sm:p-5 text-center space-y-2">
               <p className="text-xs font-bold uppercase tracking-wider text-[#4A3525]/70">
                 Beri Penilaian Pengalamanmu Menggunakan Jiwoo AI
               </p>

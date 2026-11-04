@@ -78,9 +78,9 @@ export default function CounselingScreen({ setScreen }) {
   };
 
   return (
-    <div className="relative z-10 flex flex-col justify-between h-full w-full max-w-6xl mx-auto pt-4 pb-4 px-5 md:p-8 text-center">
+    <div className="relative z-10 flex flex-col justify-between min-h-full w-full max-w-6xl mx-auto pt-4 pb-24 md:pb-8 px-4 sm:px-5 md:p-8 text-center">
       {/* Kontainer Utama: 1 Kolom di HP, 2 Kolom Berdampingan di Laptop */}
-      <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-8 items-center my-auto">
+      <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 items-center my-auto">
         {/* PANEL KIRI: Transparan di HP, Kartu Krem di Laptop */}
         <div className="md:col-span-5 flex flex-col items-center justify-center bg-transparent md:bg-[#F6E4CE]/70 md:border-2 md:border-[#4A3525]/20 md:rounded-3xl md:p-8 md:h-full">
           <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FDF3E7] border border-[#4A3525]/30 text-[11px] font-bold mb-4">
@@ -94,12 +94,12 @@ export default function CounselingScreen({ setScreen }) {
               src={jiwooMascot}
               alt="Jiwoo Mascot"
               draggable={false}
-              className={`w-66 h-66 md:w-52 md:h-52 object-contain transition-transform duration-300 ${
+              className={`w-52 h-52 sm:w-60 sm:h-60 md:w-52 md:h-52 object-contain transition-transform duration-300 ${
                 isListening
                   ? "scale-110 animate-bounce"
                   : isLoading
                     ? "animate-pulse scale-95"
-                    : "animate-jiwoo"
+                    : ""
               }`}
             />
           </div>
@@ -119,14 +119,14 @@ export default function CounselingScreen({ setScreen }) {
         </div>
 
         {/* PANEL KANAN: Ruang Balon Dialog, Kartu CBT, & Input Chat */}
-        <div className="md:col-span-7 flex flex-col justify-between h-full w-full max-w-md md:max-w-none mx-auto gap-4">
-          <div className="flex flex-col items-center md:items-start w-full gap-3 my-auto">
+        <div className="md:col-span-7 flex flex-col justify-between w-full max-w-md md:max-w-none mx-auto gap-3.5">
+          <div className="flex flex-col items-center md:items-start w-full gap-2.5">
             {/* Balon Ucapan Jiwoo */}
-            <div className="relative w-full bg-white border-2 border-[#4A3525] rounded-2xl md:rounded-3xl py-4 px-5 md:p-6 shadow-md animate-pop-1 text-left">
+            <div className="relative w-full bg-white border-2 border-[#4A3525] rounded-2xl md:rounded-3xl py-3.5 px-4 md:p-6 shadow-md animate-pop-1 text-left">
               <span className="hidden md:block text-[10px] font-bold uppercase tracking-wider text-[#F4A950] mb-1">
                 Respons Empati Jiwoo
               </span>
-              <p className="text-xs md:text-base font-bold text-[#4A3525] leading-relaxed">
+              <p className="text-xs sm:text-sm md:text-base font-bold text-[#4A3525] leading-relaxed">
                 {isLoading
                   ? "Jiwoo sedang mendengarkan dan berpikir... 🐾"
                   : jiwooData.reply}
@@ -143,7 +143,7 @@ export default function CounselingScreen({ setScreen }) {
 
             {/* Kartu Analisis CBT (Jika Terdeteksi Distorsi Kognitif) */}
             {jiwooData.distortion && (
-              <div className="w-full bg-[#F4A950]/90 border-2 border-[#4A3525] rounded-2xl p-4 text-left shadow-md animate-pop-2">
+              <div className="w-full bg-[#F4A950]/90 border-2 border-[#4A3525] rounded-2xl p-3.5 text-left shadow-md animate-pop-2">
                 <div className="flex items-center gap-1.5 text-[11px] md:text-xs font-bold text-[#4A3525] underline mb-1">
                   <Sparkles size={14} />
                   Distorsi Kognitif: {jiwooData.distortion}
@@ -155,8 +155,8 @@ export default function CounselingScreen({ setScreen }) {
             )}
           </div>
 
-          {/* Kontrol Input Suara & Teks: Transparan di HP, Kotak Putih Halus di Laptop */}
-          <div className="w-full flex flex-col items-center gap-2.5 bg-transparent md:bg-white/70 md:p-4 md:rounded-3xl md:border md:border-[#4A3525]/20">
+          {/* Kontrol Input Suara & Teks */}
+          <div className="w-full flex flex-col items-center gap-2 bg-transparent md:bg-white/70 md:p-4 md:rounded-3xl md:border md:border-[#4A3525]/20">
             <button
               type="button"
               onClick={handleMicClick}
@@ -185,7 +185,7 @@ export default function CounselingScreen({ setScreen }) {
                 type="submit"
                 disabled={isLoading}
                 aria-label="Kirim Pesan"
-                className="bg-[#F4A950] hover:bg-[#e5983e] border-2 border-[#4A3525] text-[#4A3525] px-4 py-2 rounded-full flex items-center justify-center active:scale-90 transition-transform cursor-pointer"
+                className="bg-[#F4A950] hover:bg-[#e5983e] border-2 border-[#4A3525] text-[#4A3525] px-4 py-2 rounded-full flex items-center justify-center active:scale-90 transition-transform cursor-pointer shrink-0"
               >
                 <Send size={15} />
               </button>
@@ -194,13 +194,15 @@ export default function CounselingScreen({ setScreen }) {
         </div>
       </div>
 
-      {/* Bottom Navbar otomatis hanya muncul di layar HP */}
-      <div className="w-full flex flex-col items-center mt-2">
-        <BottomNavbar
-          activeScreen={5}
-          setScreen={setScreen}
-          onCenterClick={handleMicClick}
-        />
+      {/* Bottom Navbar Khusus Mobile */}
+      <div className="fixed bottom-3 left-0 right-0 z-40 px-4 flex justify-center md:hidden pointer-events-none">
+        <div className="w-full max-w-md pointer-events-auto">
+          <BottomNavbar
+            activeScreen={5}
+            setScreen={setScreen}
+            onCenterClick={handleMicClick}
+          />
+        </div>
       </div>
     </div>
   );

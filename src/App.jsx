@@ -31,6 +31,7 @@ export default function App() {
   const startXRef = useRef(null);
   const isDraggingRef = useRef(false);
   const isInitialAuthChecked = useRef(false);
+  const scrollContainerRef = useRef(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -62,6 +63,13 @@ export default function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Reset scroll ke paling atas setiap kali berpindah halaman (screen)
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [screen]);
 
   const isDashboard = screen === 5 || screen === 6;
   const isLoggedIn = Boolean(
@@ -106,7 +114,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen w-full bg-[#FDF3E7] flex font-serif select-none overflow-hidden text-[#4A3525]">
+    <div className="h-dvh w-full bg-[#FDF3E7] flex font-serif select-none overflow-hidden text-[#4A3525]">
       {/* SIDEBAR KHUSUS LAPTOP/DESKTOP */}
       {isDashboard && (
         <aside className="hidden md:flex w-72 bg-[#F6E4CE] border-r-2 border-[#4A3525]/15 flex-col justify-between p-6 z-30 shrink-0 shadow-lg">
@@ -226,14 +234,13 @@ export default function App() {
         onTouchEnd={(e) => handleEnd(e.changedTouches[0].clientX)}
         onMouseDown={(e) => handleStart(e.clientX)}
         onMouseUp={(e) => handleEnd(e.clientX)}
-        className={`relative flex-1 h-full overflow-hidden flex flex-col justify-between ${
+        className={`relative flex-1 h-full overflow-hidden flex flex-col ${
           screen >= 2 && screen <= 4 ? "cursor-grab active:cursor-grabbing" : ""
         }`}
       >
-        {/* Top Navbar: Hamburger Menu di HP & Menu Horizontal di Laptop */}
-        {/* Top Navbar: Hamburger Menu Beranimasi di HP & Menu Horizontal di Laptop */}
+        {/* Top Navbar: Selalu terkunci di atas (sticky/shrink-0 z-50) agar tidak pernah hilang saat scroll */}
         {!isDashboard && (
-          <header className="relative flex items-center justify-between px-5 md:px-12 py-3.5 md:py-5 border-b border-[#4A3525]/15 bg-[#FDF3E7]/95 backdrop-blur-sm z-30 shrink-0">
+          <header className="sticky top-0 left-0 right-0 flex items-center justify-between px-4 sm:px-6 md:px-12 py-3 md:py-4 border-b border-[#4A3525]/15 bg-[#FDF3E7]/95 backdrop-blur-md z-50 shrink-0">
             {/* Logo & Nama Brand */}
             <div
               onClick={() => navigateTo(1)}
@@ -242,9 +249,9 @@ export default function App() {
               <img
                 src={jiwooMascot}
                 alt="Jiwoo"
-                className="w-9 h-9 md:w-12 md:h-12 object-contain"
+                className="w-8 h-8 sm:w-9 sm:h-9 md:w-11 md:h-11 object-contain"
               />
-              <span className="text-base md:text-lg font-bold text-[#4A3525]">
+              <span className="text-sm sm:text-base md:text-lg font-bold text-[#4A3525]">
                 Jiwoo Counseling
               </span>
             </div>
@@ -287,15 +294,15 @@ export default function App() {
               </button>
             </div>
 
-            {/* Tombol Hamburger Khusus HP dengan Animasi Putar (Rotate & Scale) */}
+            {/* Tombol Hamburger Khusus HP */}
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
               aria-label="Toggle Menu"
-              className="md:hidden relative w-10 h-10 flex items-center justify-center rounded-xl bg-[#F6E4CE] border-2 border-[#4A3525] text-[#4A3525] shadow-[0_2px_0_#4A3525] active:translate-y-0.5 transition-all cursor-pointer overflow-hidden"
+              className="md:hidden relative w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl bg-[#F6E4CE] border-2 border-[#4A3525] text-[#4A3525] shadow-[0_2px_0_#4A3525] active:translate-y-0.5 transition-all cursor-pointer overflow-hidden"
             >
               <Menu
-                size={20}
+                size={18}
                 className={`absolute transition-all duration-300 ease-in-out ${
                   isMobileMenuOpen
                     ? "opacity-0 rotate-90 scale-50"
@@ -303,7 +310,7 @@ export default function App() {
                 }`}
               />
               <X
-                size={20}
+                size={18}
                 className={`absolute transition-all duration-300 ease-in-out ${
                   isMobileMenuOpen
                     ? "opacity-100 rotate-0 scale-100"
@@ -312,9 +319,9 @@ export default function App() {
               />
             </button>
 
-            {/* Dropdown Menu Hamburger dengan Animasi Slide-Down & Fade */}
+            {/* Dropdown Menu Hamburger */}
             <div
-              className={`md:hidden absolute top-full left-0 right-0 bg-[#FDF3E7] border-b-2 border-[#4A3525] shadow-xl px-5 py-4 flex flex-col gap-2.5 z-40 origin-top transition-all duration-300 ease-out ${
+              className={`md:hidden absolute top-full left-0 right-0 bg-[#FDF3E7] border-b-2 border-[#4A3525] shadow-xl px-5 py-4 flex flex-col gap-2.5 z-50 origin-top transition-all duration-300 ease-out ${
                 isMobileMenuOpen
                   ? "opacity-100 translate-y-0 scale-y-100 pointer-events-auto"
                   : "opacity-0 -translate-y-3 scale-y-95 pointer-events-none"
@@ -367,11 +374,16 @@ export default function App() {
         )}
 
         {/* Ornamen Gelembung Latar Belakang */}
-        <div className="pointer-events-none absolute -top-12 -left-12 w-44 h-44 md:w-64 md:h-64 rounded-full bg-[#F4A950]/45 animate-bubble-slow" />
-        <div className="pointer-events-none absolute top-20 right-8 w-24 h-24 md:w-48 md:h-48 rounded-full bg-[#F4A950]/35 animate-bubble-reverse" />
-        <div className="pointer-events-none absolute -bottom-12 right-12 w-36 h-36 md:w-56 md:h-56 rounded-full bg-[#F4A950]/40 animate-bubble-float" />
+        <div className="pointer-events-none absolute -top-12 -left-12 w-40 h-40 md:w-64 md:h-64 rounded-full bg-[#F4A950]/45 animate-bubble-slow" />
+        <div className="pointer-events-none absolute top-20 right-6 w-20 h-20 md:w-48 md:h-48 rounded-full bg-[#F4A950]/35 animate-bubble-reverse" />
+        <div className="pointer-events-none absolute -bottom-12 right-8 w-32 h-32 md:w-56 md:h-56 rounded-full bg-[#F4A950]/40 animate-bubble-float" />
 
-        <div className="relative z-10 flex-1 w-full h-full overflow-y-auto flex flex-col justify-center">
+        {/* Container Scrollable: Menggunakan my-auto pada anak elemen, BUKAN justify-center, agar bagian atas tidak terpotong */}
+        <div
+          ref={scrollContainerRef}
+          onClick={() => isMobileMenuOpen && setIsMobileMenuOpen(false)}
+          className="relative z-10 flex-1 w-full overflow-y-auto overflow-x-hidden flex flex-col"
+        >
           {screen === 1 && (
             <WelcomeScreen
               isLoggedIn={isLoggedIn}
