@@ -6,6 +6,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const SESSION_KEY = "jiwoo_ephemeral_user";
+const OAUTH_INTENT_KEY = "jiwoo_oauth_intent";
 
 const FALLBACK_USER = {
   name: "Teman Jiwoo",
@@ -18,7 +19,41 @@ const FALLBACK_USER = {
   isGuest: true,
 };
 
-// Mengubah data asli dari Google / Supabase ke format profil Jiwoo
+// Cek apakah user Google baru saja ter-registrasi otomatis padahal menekan tombol di halaman Sign In
+export async function validateOAuthSessionIntent(supaUser) {
+  if (!supaUser) return { valid: false, error: null };
+
+  const intent = sessionStorage.getItem(OAUTH_INTENT_KEY);
+  sessionStorage.removeItem(OAUTH_INTENT_KEY);
+
+  const meta = supaUser.user_metadata || {};
+  const provider = supaUser.app_metadata?.provider || "email";
+
+  if (provider === "google") {
+    const createdAt = new Date(supaUser.created_at).getTime();
+    const now = Date.now();
+    const isJustCreated = now - createdAt < 15000 && !meta.isRegistered;
+
+    if (intent === "signin" && isJustCreated) {
+      sessionStorage.removeItem(SESSION_KEY);
+      await supabase.auth.signOut();
+      return {
+        valid: false,
+        error:
+          "Akun Google ini belum terdaftar di Jiwoo AI. Silakan daftar melalui menu Sign Up terlebih dahulu!",
+      };
+    }
+
+    if (!meta.isRegistered) {
+      await supabase.auth.updateUser({
+        data: { isRegistered: true },
+      });
+    }
+  }
+
+  return { valid: true, error: null };
+}
+
 export function syncSupabaseUser(supaUser) {
   if (!supaUser) {
     sessionStorage.removeItem(SESSION_KEY);
@@ -33,8 +68,6 @@ export function syncSupabaseUser(supaUser) {
     supaUser.email?.split("@")[0] ||
     "Teman Jiwoo";
 
-  // Jika login via Google dan user BELUM pernah klik "Simpan Profil" (meta.profileEdited !== true),
-  // pastikan birthDate & location benar-benar kosong ("")
   const isGoogle = provider === "google";
   const hasEdited = Boolean(meta.profileEdited);
 
@@ -68,8 +101,9 @@ export function syncSupabaseUser(supaUser) {
   return userData;
 }
 
-// 1. Login & Sign Up dengan Akun Google Asli
-export async function loginWithGoogleOAuth() {
+// 1. Login / Sign Up dengan Google (Menerima mode: "signin" atau "signup")
+export async function loginWithGoogleOAuth(mode = "signup") {
+  sessionStorage.setItem(OAUTH_INTENT_KEY, mode);
   const { error } = await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
@@ -82,7 +116,7 @@ export async function loginWithGoogleOAuth() {
   if (error) throw new Error(error.message);
 }
 
-// 2. Sign Up dengan Email & Password Asli ke Supabase (Manual)
+// 2. Sign Up dengan Email & Password Manual
 export async function registerSocialUser({
   name,
   email,
@@ -98,7 +132,8 @@ export async function registerSocialUser({
         full_name: name,
         birthDate: birthDate.trim(),
         location: location.trim(),
-        profileEdited: true,
+        profileEdited: Boolean(birthDate.trim() || location.trim()),
+        isRegistered: true,
       },
     },
   });
@@ -106,24 +141,29 @@ export async function registerSocialUser({
   return syncSupabaseUser(data.user);
 }
 
-// 3. Sign In dengan Email & Password Asli ke Supabase
+// 3. Sign In dengan Email & Password Manual
 export async function loginSocialUser({ email, password }) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    throw new Error(
+      "Akun belum terdaftar atau password salah. Silakan Sign Up terlebih dahulu!",
+    );
+  }
   return syncSupabaseUser(data.user);
 }
 
-// 4. Update Biodata User langsung ke Metadata Supabase
+// 4. Update Biodata User
 export async function updateUserProfile(updates = {}) {
   const { data, error } = await supabase.auth.updateUser({
     data: {
       full_name: updates.name?.trim() || "",
       birthDate: updates.birthDate?.trim() || "",
       location: updates.location?.trim() || "",
-      profileEdited: true, // Tandai bahwa user sudah mengedit profilnya secara manual
+      profileEdited: true,
+      isRegistered: true,
     },
   });
 
@@ -131,7 +171,7 @@ export async function updateUserProfile(updates = {}) {
   return syncSupabaseUser(data.user);
 }
 
-// 5. Ambil User Aktif untuk ditampilkan di CounselingScreen & ProfileScreen
+// 5. Ambil User Aktif
 export function getCurrentUser() {
   try {
     const saved = sessionStorage.getItem(SESSION_KEY);
@@ -150,7 +190,7 @@ export function getCurrentUser() {
   }
 }
 
-// 6. Logout Asli dari Supabase
+// 6. Logout
 export async function logoutUser() {
   sessionStorage.removeItem(SESSION_KEY);
   await supabase.auth.signOut();
