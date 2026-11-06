@@ -69,9 +69,9 @@ export default function ProfileScreen({ setScreen }) {
   };
 
   return (
-    <div className="relative z-10 flex flex-col items-center justify-between md:justify-center min-h-full w-full max-w-3xl mx-auto pt-5 pb-24 md:py-8 px-4 sm:px-6 text-center animate-pop-1">
-      {/* Kartu Profil Utama */}
-      <div className="w-full my-auto bg-white/85 backdrop-blur-sm border-2 border-[#4A3525] rounded-3xl p-5 sm:p-6 md:p-10 shadow-xl flex flex-col md:flex-row items-center gap-5 md:gap-10">
+    <div className="relative z-10 flex flex-col items-center justify-between md:justify-center min-h-full w-full max-w-3xl mx-auto pt-5 pb-24 md:py-8 px-4 sm:px-6 text-center">
+      {/* Kartu Profil Utama (animate-pop-1 dipindahkan ke sini agar tidak mengganggu fixed BottomNavbar) */}
+      <div className="w-full my-auto bg-white/85 backdrop-blur-sm border-2 border-[#4A3525] rounded-3xl p-5 sm:p-6 md:p-10 shadow-xl flex flex-col md:flex-row items-center gap-5 md:gap-10 animate-pop-1">
         {/* Kolom Foto Profil */}
         <div className="flex flex-col items-center shrink-0">
           <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 rounded-full bg-[#EAE6DF] border-2 border-[#4A3525] flex items-center justify-center overflow-hidden shadow-md">
