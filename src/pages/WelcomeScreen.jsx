@@ -1,10 +1,8 @@
 import { useState } from "react";
 import jiwooMascot from "../assets/jiwoo.svg";
-import { Sparkles } from "lucide-react";
+import { Sparkles, CheckCircle2, Loader2 } from "lucide-react";
 
 export default function WelcomeScreen({ onNext, isLoggedIn }) {
-  const WHATSAPP_NUMBER = "6282338609452";
-
   const [senderName, setSenderName] = useState("");
   const [category, setCategory] = useState(
     "Konsultasi Lanjut & Curhat Langsung",
@@ -12,6 +10,10 @@ export default function WelcomeScreen({ onNext, isLoggedIn }) {
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
   const [message, setMessage] = useState("");
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   const ratingLabels = {
     1: "Perlu Banyak Perbaikan",
@@ -21,25 +23,44 @@ export default function WelcomeScreen({ onNext, isLoggedIn }) {
     5: "Luar Biasa! Sangat Direkomendasikan",
   };
 
-  const handleSendToWhatsApp = (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!message.trim()) return;
 
-    const starsVisual = "⭐".repeat(rating);
-    const formattedText =
-      `*HALO DEVELOPER JIWOO AI (SHAHANCODES)*%0A` +
-      `----------------------------------------%0A` +
-      `*Nama:* ${senderName.trim() || "Sahabat Jiwoo (Anonim)"}%0A` +
-      `*Kategori:* ${category}%0A` +
-      `*Penilaian Aplikasi:* ${starsVisual} (${rating}/5 - ${ratingLabels[rating]})%0A` +
-      `----------------------------------------%0A` +
-      `*Keluhan / Pesan Konsultasi & Feedback:*%0A` +
-      `${encodeURIComponent(message.trim())}`;
+    setIsSubmitting(true);
+    setErrorMsg("");
 
-    window.open(
-      `https://wa.me/${WHATSAPP_NUMBER}?text=${formattedText}`,
-      "_blank",
-    );
+    try {
+      // Menggunakan Web3Forms API (Gratis & langsung masuk ke Email kamu)
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          apikey: "34c64c96-f181-4cf4-8f94-227401d9f548",
+          subject: `[Jiwoo AI Feedback] - ${category}`,
+          from_name: senderName.trim() || "Sahabat Jiwoo (Anonim)",
+          name: senderName.trim() || "Sahabat Jiwoo (Anonim)",
+          category: category,
+          rating: `${rating} / 5 (${ratingLabels[rating]})`,
+          message: message.trim(),
+        }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setIsSubmitted(true);
+        setMessage("");
+      } else {
+        setErrorMsg("Gagal mengirim pesan. Coba beberapa saat lagi.");
+      }
+    } catch {
+      setErrorMsg("Terjadi kesalahan jaringan. Periksa koneksi internetmu.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const scrollToSection = (id) => {
@@ -257,100 +278,137 @@ export default function WelcomeScreen({ onNext, isLoggedIn }) {
               Konsultasi Lanjut & Penilaian Aplikasi
             </h2>
             <p className="text-xs text-[#4A3525]/75 font-sans">
-              Merasa butuh teman diskusi manusia secara langsung karena kurang
-              puas dengan respons AI, atau ingin memberikan ulasan bintang untuk
-              Jiwoo AI? Kirimkan keluhan dan penilaianmu langsung ke WhatsApp
-              pengembang di bawah ini.
+              Merasa butuh teman diskusi manusia secara langsung atau ingin
+              memberikan ulasan dan masukan untuk pengembangan Jiwoo AI?
+              Kirimkan melalui formulir di bawah ini.
             </p>
           </div>
 
-          <form
-            onSubmit={handleSendToWhatsApp}
-            className="bg-[#FDF3E7] border-2 border-[#4A3525] rounded-3xl p-5 sm:p-6 md:p-8 shadow-[0_6px_0_#4A3525] space-y-6"
-          >
-            <div className="bg-[#F6E4CE]/80 border border-[#4A3525]/30 rounded-2xl p-4 sm:p-5 text-center space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wider text-[#4A3525]/70">
-                Beri Penilaian Pengalamanmu Menggunakan Jiwoo AI
-              </p>
-              <div className="flex items-center justify-center gap-2 py-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    onMouseEnter={() => setHoverRating(star)}
-                    onMouseLeave={() => setHoverRating(0)}
-                    className="p-1 text-2xl transition-transform hover:scale-125 cursor-pointer"
-                  >
-                    {star <= (hoverRating || rating) ? "⭐" : "☆"}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs font-bold text-[#4A3525]">
-                {rating} / 5 Bintang —{" "}
-                <span className="text-[#4A3525]/80 font-sans">
-                  {ratingLabels[hoverRating || rating]}
-                </span>
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-sans">
-              <div className="space-y-1.5 text-left">
-                <label className="text-xs font-bold text-[#4A3525]">
-                  Nama Panggilan (Opsional / Boleh Anonim)
-                </label>
-                <input
-                  type="text"
-                  value={senderName}
-                  onChange={(e) => setSenderName(e.target.value)}
-                  placeholder="Contoh: Raka / Hamba Allah"
-                  className="w-full px-4 py-3 rounded-2xl bg-white border-2 border-[#4A3525]/40 focus:border-[#4A3525] text-xs outline-none"
-                />
-              </div>
-
-              <div className="space-y-1.5 text-left">
-                <label className="text-xs font-bold text-[#4A3525]">
-                  Tujuan Pesan
-                </label>
-                <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl bg-white border-2 border-[#4A3525]/40 focus:border-[#4A3525] text-xs outline-none cursor-pointer"
+          <div className="bg-[#FDF3E7] border-2 border-[#4A3525] rounded-3xl p-5 sm:p-6 md:p-8 shadow-[0_6px_0_#4A3525]">
+            {isSubmitted ? (
+              <div className="py-12 flex flex-col items-center text-center space-y-4 animate-pop-1">
+                <div className="w-16 h-16 rounded-full bg-green-100 text-green-700 flex items-center justify-center border-2 border-green-700">
+                  <CheckCircle2 size={32} />
+                </div>
+                <h3 className="text-lg font-bold text-[#4A3525]">
+                  Pesan & Penilaian Berhasil Terkirim!
+                </h3>
+                <p className="text-xs text-[#4A3525]/80 max-w-md font-sans leading-relaxed">
+                  Terima kasih banyak atas ulasan dan masukan berhargamu.
+                  Pesanmu telah langsung diterima oleh pengembang Jiwoo AI. 🐾
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSubmitted(false);
+                    setMessage("");
+                  }}
+                  className="mt-2 px-6 py-2.5 rounded-full bg-[#F4A950] hover:bg-[#e5983e] text-[#4A3525] text-xs font-bold border border-[#4A3525] cursor-pointer transition-all"
                 >
-                  <option value="Konsultasi Lanjut & Curhat Langsung">
-                    Konsultasi Lanjut & Curhat (Kurang Puas dengan AI)
-                  </option>
-                  <option value="Ulasan & Feedback Pengembangan Aplikasi">
-                    Ulasan & Saran Pengembangan Aplikasi Jiwoo AI
-                  </option>
-                  <option value="Laporan Kendala Teknis / Bug">
-                    Laporan Kendala Teknis / Bug
-                  </option>
-                </select>
+                  Kirim Pesan Lainnya
+                </button>
               </div>
-            </div>
+            ) : (
+              <form onSubmit={handleFormSubmit} className="space-y-6">
+                <div className="bg-[#F6E4CE]/80 border border-[#4A3525]/30 rounded-2xl p-4 sm:p-5 text-center space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#4A3525]/70">
+                    Beri Penilaian Pengalamanmu Menggunakan Jiwoo AI
+                  </p>
+                  <div className="flex items-center justify-center gap-2 py-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        className="p-1 text-2xl transition-transform hover:scale-125 cursor-pointer"
+                      >
+                        {star <= (hoverRating || rating) ? "⭐" : "☆"}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs font-bold text-[#4A3525]">
+                    {rating} / 5 Bintang —{" "}
+                    <span className="text-[#4A3525]/80 font-sans">
+                      {ratingLabels[hoverRating || rating]}
+                    </span>
+                  </p>
+                </div>
 
-            <div className="space-y-1.5 text-left font-sans">
-              <label className="text-xs font-bold text-[#4A3525]">
-                Tuliskan Keluhan, Cerita Lanjutan, atau Ulasanmu *
-              </label>
-              <textarea
-                rows={4}
-                required
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Ceritakan keluhan atau masalah yang ingin kamu konsultasikan lebih lanjut, atau tuliskan masukanmu untuk Jiwoo AI di sini..."
-                className="w-full p-4 rounded-2xl bg-white border-2 border-[#4A3525]/40 focus:border-[#4A3525] text-xs outline-none resize-none leading-relaxed"
-              />
-            </div>
+                {errorMsg && (
+                  <div className="px-4 py-2.5 rounded-xl bg-red-100 border border-red-400 text-red-700 text-xs font-bold">
+                    {errorMsg}
+                  </div>
+                )}
 
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center gap-2 bg-[#F4A950] hover:bg-[#e5983e] text-[#4A3525] font-bold text-xs md:text-sm py-4 rounded-2xl border-2 border-[#4A3525] shadow-[0_4px_0_#4A3525] active:translate-y-0.5 active:shadow-[0_2px_0_#4A3525] transition-all cursor-pointer"
-            >
-              <span>🚀 Kirim Keluhan & Penilaian ke WhatsApp</span>
-            </button>
-          </form>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-sans">
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-xs font-bold text-[#4A3525]">
+                      Nama Panggilan (Opsional / Boleh Anonim)
+                    </label>
+                    <input
+                      type="text"
+                      value={senderName}
+                      onChange={(e) => setSenderName(e.target.value)}
+                      placeholder="Contoh: Raka / Hamba Allah"
+                      className="w-full px-4 py-3 rounded-2xl bg-white border-2 border-[#4A3525]/40 focus:border-[#4A3525] text-xs outline-none"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 text-left">
+                    <label className="text-xs font-bold text-[#4A3525]">
+                      Tujuan Pesan
+                    </label>
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className="w-full px-4 py-3 rounded-2xl bg-white border-2 border-[#4A3525]/40 focus:border-[#4A3525] text-xs outline-none cursor-pointer"
+                    >
+                      <option value="Konsultasi Lanjut & Curhat Langsung">
+                        Konsultasi Lanjut & Curhat (Kurang Puas dengan AI)
+                      </option>
+                      <option value="Ulasan & Saran Pengembangan Aplikasi Jiwoo AI">
+                        Ulasan & Saran Pengembangan Aplikasi Jiwoo AI
+                      </option>
+                      <option value="Laporan Kendala Teknis / Bug">
+                        Laporan Kendala Teknis / Bug
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 text-left font-sans">
+                  <label className="text-xs font-bold text-[#4A3525]">
+                    Tuliskan Keluhan, Cerita Lanjutan, atau Ulasanmu *
+                  </label>
+                  <textarea
+                    rows={4}
+                    required
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    placeholder="Ceritakan keluhan atau masalah yang ingin kamu konsultasikan lebih lanjut, atau tuliskan masukanmu untuk Jiwoo AI di sini..."
+                    className="w-full p-4 rounded-2xl bg-white border-2 border-[#4A3525]/40 focus:border-[#4A3525] text-xs outline-none resize-none leading-relaxed"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full flex items-center justify-center gap-2 bg-[#F4A950] hover:bg-[#e5983e] text-[#4A3525] font-bold text-xs md:text-sm py-4 rounded-2xl border-2 border-[#4A3525] shadow-[0_4px_0_#4A3525] active:translate-y-0.5 active:shadow-[0_2px_0_#4A3525] transition-all cursor-pointer disabled:opacity-60"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Mengirimkan Pesan...</span>
+                    </>
+                  ) : (
+                    <span>🚀 Kirim Keluhan & Penilaian Langsung</span>
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
         </section>
       </div>
     </div>
