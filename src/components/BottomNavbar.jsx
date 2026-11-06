@@ -7,7 +7,7 @@ export default function BottomNavbar({
   onCenterClick,
 }) {
   return (
-    <div className="md:hidden relative w-full max-w-[320px] sm:max-w-xs mx-auto">
+    <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[88vw] max-w-[320px]">
       <div className="w-full h-12 bg-[#F4A950] border-2 border-[#4A3525] rounded-full flex items-center justify-between px-10 shadow-[0_4px_0_#4A3525]">
         <button
           type="button"
