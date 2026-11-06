@@ -227,9 +227,9 @@ export default function ProfileScreen({ setScreen }) {
         </div>
       </div>
 
-      {/* Bottom Navbar Khusus Mobile */}
-      <div className="fixed bottom-3 left-0 right-0 z-40 px-4 flex justify-center md:hidden pointer-events-none">
-        <div className="w-full max-w-md pointer-events-auto">
+      {/* Bottom Navbar Khusus Mobile: Pasti Lurus di Tengah */}
+      <div className="fixed bottom-4 inset-x-0 z-50 flex justify-center items-center px-4 md:hidden pointer-events-none">
+        <div className="w-full max-w-xs sm:max-w-sm flex justify-center pointer-events-auto">
           <BottomNavbar
             activeScreen={6}
             setScreen={setScreen}
