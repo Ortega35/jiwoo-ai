@@ -63,7 +63,6 @@ export default function CounselingScreen({ setScreen }) {
   const isUserTyping = inputText.trim().length > 0 && !isLoading;
 
   const getJiwooInteractiveState = () => {
-    // 2. Ketika user berbicara di mic atau sedang mengetik cerita -> Animasi Menyimak
     if (isListening || isUserTyping) {
       return {
         mode: "listening",
@@ -76,7 +75,6 @@ export default function CounselingScreen({ setScreen }) {
       };
     }
 
-    // Ketika Jiwoo sedang memproses jawaban CBT
     if (isLoading) {
       return {
         mode: "thinking",
@@ -87,7 +85,6 @@ export default function CounselingScreen({ setScreen }) {
       };
     }
 
-    // 3. Ketika Jiwoo menjawab / menjelaskan -> Animasi Menjelaskan (Mulut & Tangan Aktif)
     if (isSpeaking) {
       return {
         mode: "explaining",
@@ -98,7 +95,6 @@ export default function CounselingScreen({ setScreen }) {
       };
     }
 
-    // 1. Baru masuk / Siap mendengarkan -> Animasi Menyapa Ramah
     return {
       mode: "greeting",
       statusText: hasStartedChat
@@ -200,7 +196,6 @@ export default function CounselingScreen({ setScreen }) {
           </span>
 
           <div className="relative flex flex-col items-center justify-center my-2">
-            {/* Cincin Aura Gelombang saat Menyimak atau Menjelaskan */}
             {(uiState.mode === "listening" ||
               uiState.mode === "explaining") && (
               <div
@@ -208,7 +203,6 @@ export default function CounselingScreen({ setScreen }) {
               />
             )}
 
-            {/* Balon Status Kecil di Atas Kepala Jiwoo */}
             <div
               className={`mb-1 z-20 px-3 py-1 rounded-full border-2 border-[#4A3525] text-[10px] font-bold shadow-sm transition-all duration-300 flex items-center gap-1 ${uiState.badgeColor}`}
             >
@@ -218,14 +212,12 @@ export default function CounselingScreen({ setScreen }) {
               <span>{uiState.badgeText}</span>
             </div>
 
-            {/* Komponen SVG Interaktif Penuh (Mata, Mulut, Telinga, & Tangan Bereaksi) */}
             <JiwooInteractiveMascot
               mode={uiState.mode}
               onClick={() => triggerJiwooSpeech(jiwooData.reply)}
               className="relative z-10 w-52 h-52 sm:w-60 sm:h-60 md:w-64 md:h-64"
             />
 
-            {/* Indikator Equalizer Suara saat Jiwoo Menjelaskan */}
             {uiState.mode === "explaining" && (
               <div className="mt-1 flex items-end gap-1 h-4">
                 <span className="w-1.5 h-3 bg-[#F4A950] border border-[#4A3525] rounded-full animate-bounce" />
@@ -251,38 +243,81 @@ export default function CounselingScreen({ setScreen }) {
           </button>
         </div>
 
-        {/* PANEL KANAN: Ruang Balon Dialog, Kartu CBT, & Input Chat */}
-        <div className="md:col-span-7 flex flex-col justify-between w-full max-w-md md:max-w-none mx-auto gap-3.5">
-          <div className="flex flex-col items-center md:items-start w-full gap-2.5">
-            {/* Balon Ucapan Jiwoo */}
-            <div className="relative w-full bg-white border-2 border-[#4A3525] rounded-2xl md:rounded-3xl py-3.5 px-4 md:p-6 shadow-md animate-pop-1 text-left">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#F4A950]">
-                  {hasStartedChat
-                    ? "Penjelasan & Saran Empati Jiwoo"
-                    : "Sapaan Hangat Jiwoo"}
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => triggerJiwooSpeech(jiwooData.reply)}
-                  className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A3525]/70 hover:text-[#4A3525] cursor-pointer"
+        {/* PANEL KANAN: Ruang Balon Dialog Comic Vector, Kartu CBT, & Input Chat */}
+        <div className="md:col-span-7 flex flex-col justify-between w-full max-w-md md:max-w-none mx-auto gap-4">
+          <div className="flex flex-col items-center md:items-start w-full gap-3">
+            {/* BALON UCAPAN JIWOO MODEL VEKTOR KOMIK BARU */}
+            <div className="relative w-full mb-7 animate-pop-1">
+              <div className="relative bg-white border-[3.5px] border-[#231F20] rounded-[2.4rem] px-6 py-5 md:px-8 md:py-7 shadow-[7px_7px_0px_#231F20] text-left">
+                {/* Garis Lengkung Highlight Khas Komik di Pojok Kanan Atas */}
+                <svg
+                  className="absolute top-3.5 right-4 w-12 h-12 md:w-14 md:h-14 pointer-events-none"
+                  viewBox="0 0 60 60"
+                  fill="none"
                 >
-                  <Volume2 size={12} /> Putar Suara
-                </button>
+                  <path
+                    d="M 8 10 C 34 10, 48 24, 48 50"
+                    stroke="#231F20"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+
+                {/* Header Label & Tombol Putar Suara */}
+                <div className="flex items-center justify-between pr-8 mb-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#F4A950]">
+                    {hasStartedChat
+                      ? "Penjelasan & Saran Empati Jiwoo"
+                      : "Sapaan Hangat Jiwoo"}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => triggerJiwooSpeech(jiwooData.reply)}
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A3525]/75 hover:text-[#231F20] cursor-pointer"
+                  >
+                    <Volume2 size={13} /> Putar Suara
+                  </button>
+                </div>
+
+                {/* Isi Kata-Kata Jiwoo */}
+                <p className="text-xs sm:text-sm md:text-base font-bold text-[#231F20] leading-relaxed pr-3">
+                  {isLoading
+                    ? "Jiwoo sedang mendengarkan dan merangkai saran untukmu... 🐾"
+                    : jiwooData.reply}
+                </p>
               </div>
 
-              <p className="text-xs sm:text-sm md:text-base font-bold text-[#4A3525] leading-relaxed">
-                {isLoading
-                  ? "Jiwoo sedang mendengarkan dan merangkai saran untukmu... 🐾"
-                  : jiwooData.reply}
-              </p>
-              <div className="md:hidden absolute -bottom-2.5 left-10 w-4 h-4 bg-white border-b-2 border-r-2 border-[#4A3525] rotate-45" />
+              {/* Ekor Balon Bicara Melengkung dengan Bayangan 3D Hitam */}
+              <svg
+                className="absolute -bottom-7.75 left-10 md:left-14 w-16 h-9 pointer-events-none z-10"
+                viewBox="0 0 70 42"
+                fill="none"
+              >
+                {/* Bayangan Hitam Tebal di Belakang Ekor */}
+                <path
+                  d="M 22 4 C 24 20, 32 32, 45 40 C 38 26, 40 12, 46 4 Z"
+                  fill="#231F20"
+                />
+                {/* Bagian Putih Ekor yang Menyatu dengan Kotak */}
+                <path
+                  d="M 10 0 C 13 18, 24 31, 38 38 C 30 24, 30 11, 35 0 Z"
+                  fill="#FFFFFF"
+                />
+                {/* Garis Tepi Luar Ekor */}
+                <path
+                  d="M 10 2 C 13 18, 24 31, 38 38 C 30 24, 30 11, 35 2"
+                  stroke="#231F20"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </div>
 
             {/* Pesan Terakhir User */}
             {userText && (
-              <div className="self-end bg-[#EAE0D5] border border-[#4A3525]/30 rounded-2xl px-4 py-2 text-[11px] md:text-xs text-[#4A3525] italic max-w-md text-right">
+              <div className="self-end bg-[#EAE0D5] border-2 border-[#4A3525]/40 rounded-2xl px-4 py-2 text-[11px] md:text-xs text-[#4A3525] italic max-w-md text-right">
                 “{userText}”
               </div>
             )}
