@@ -121,7 +121,7 @@ export default function App() {
     setCurrentUser(getCurrentUser());
     setScreen(4);
   };
-
+// mengembalikkan
   return (
     <div className="h-dvh w-full bg-[#FDF3E7] flex font-serif select-none overflow-hidden text-[#4A3525]">
   {/* khusu laptop */}
@@ -168,7 +168,7 @@ export default function App() {
                 onClick={() => setScreen(6)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                   screen === 6
-                    ? "bg-[#F4A950] text-[#4A3525] border-2 border-[#4A3525] shadow-md"
+                    ? "bg-[#F4A950] text-[#4A3525] border-2 border-[#4A3550] shadow-md"
                     : "text-[#4A3525]/80 hover:bg-[#4A3525]/5"
                 }`}
               >
