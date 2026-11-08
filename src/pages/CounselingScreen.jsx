@@ -28,10 +28,14 @@ export default function CounselingScreen({ setScreen }) {
   const [isMuted, setIsMuted] = useState(false);
 
   const fallbackTimerRef = useRef(null);
-  const chatEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
+  // Scroll HANYA di dalam kotak chat (bukan menggeser seluruh layar HP)
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
   }, [messages, isLoading]);
 
   const triggerJiwooSpeech = (text) => {
@@ -201,36 +205,26 @@ export default function CounselingScreen({ setScreen }) {
   };
 
   return (
-    <div className="relative z-10 flex flex-col justify-center w-full max-w-6xl mx-auto min-h-dvh pt-3 pb-28 md:py-6 px-3 sm:px-5 md:px-8">
-      {/* Grid Utama: Tinggi Kartu Kiri dan Kanan Sejajar di Laptop */}
-      <div className="w-full grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-7 items-stretch md:h-[82vh]">
-        {/* PANEL KIRI: Panggung Maskot Interaktif Jiwoo */}
-        <div className="md:col-span-5 flex flex-col items-center justify-center bg-[#F6E4CE]/65 md:bg-[#F6E4CE]/80 border-2 border-[#4A3525]/25 rounded-3xl p-3 sm:p-4 md:p-7 text-center h-full">
-          <div className="flex items-center justify-between w-full md:justify-center gap-2 mb-1.5">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FDF3E7] border border-[#4A3525]/30 text-[10px] sm:text-[11px] font-bold shadow-xs">
-              <Sparkles className="text-[#F4A950] shrink-0" size={12} />
-              <span className="truncate">{uiState.statusText}</span>
-            </span>
+    <div className="relative z-10 flex flex-col justify-between w-full max-w-6xl mx-auto min-h-full pt-2 pb-24 md:py-6 px-4 sm:px-5 md:px-8 text-center">
+      {/* Grid Utama: Polos menyatu di HP, 2 Kartu Sejajar di Laptop */}
+      <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-7 items-center md:items-stretch my-auto md:h-[82vh]">
+        {/* PANEL KIRI: Transparan Tanpa Bingkai di HP, Kartu Krem di Laptop */}
+        <div className="md:col-span-5 flex flex-col items-center justify-center bg-transparent md:bg-[#F6E4CE]/80 md:border-2 md:border-[#4A3525]/25 md:rounded-3xl p-1 md:p-7 text-center md:h-full">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FDF3E7] border border-[#4A3525]/30 text-[10px] sm:text-[11px] font-bold mb-1.5 shadow-2xs">
+            <Sparkles className="text-[#F4A950] shrink-0" size={12} />
+            <span>Status Jiwoo: {uiState.statusText}</span>
+          </span>
 
-            <button
-              type="button"
-              onClick={handleResetSession}
-              className="md:hidden inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-[#4A3525]/30 text-[10px] font-bold text-[#4A3525]"
-            >
-              <RotateCcw size={11} /> Reset
-            </button>
-          </div>
-
-          <div className="relative flex flex-col items-center justify-center my-1">
+          <div className="relative flex flex-col items-center justify-center">
             {(uiState.mode === "listening" ||
               uiState.mode === "explaining") && (
               <div
-                className={`absolute w-32 h-32 sm:w-44 sm:h-44 rounded-full border-2 animate-ping opacity-35 pointer-events-none ${uiState.ringColor}`}
+                className={`absolute w-36 h-36 sm:w-44 sm:h-44 rounded-full border-2 animate-ping opacity-35 pointer-events-none ${uiState.ringColor}`}
               />
             )}
 
             <div
-              className={`mb-1 z-20 px-3 py-0.5 rounded-full border-2 border-[#4A3525] text-[10px] font-bold shadow-sm flex items-center gap-1 ${uiState.badgeColor}`}
+              className={`mb-0.5 z-20 px-3 py-0.5 rounded-full border-2 border-[#4A3525] text-[10px] font-bold shadow-2xs flex items-center gap-1 ${uiState.badgeColor}`}
             >
               {uiState.mode === "explaining" && (
                 <Volume2 className="animate-bounce" size={11} />
@@ -241,11 +235,11 @@ export default function CounselingScreen({ setScreen }) {
             <JiwooInteractiveMascot
               mode={uiState.mode}
               onClick={handleReplayLastMessage}
-              className="relative z-10 w-36 h-32 sm:w-44 sm:h-40 md:w-60 md:h-56"
+              className="relative z-10 w-44 h-40 sm:w-52 sm:h-48 md:w-60 md:h-56"
             />
 
             {uiState.mode === "explaining" && (
-              <div className="mt-1 flex items-end gap-1 h-3.5">
+              <div className="mt-0.5 flex items-end gap-1 h-3.5">
                 <span className="w-1.5 h-2.5 bg-[#F4A950] border border-[#4A3525] rounded-full animate-bounce" />
                 <span className="w-1.5 h-3.5 bg-[#4A3525] rounded-full animate-pulse" />
                 <span className="w-1.5 h-2 bg-[#F4A950] border border-[#4A3525] rounded-full animate-bounce" />
@@ -280,29 +274,29 @@ export default function CounselingScreen({ setScreen }) {
           </div>
         </div>
 
-        {/* PANEL KANAN: Ruang Chat Konseling Interaktif */}
-        <div className="md:col-span-7 flex flex-col justify-between bg-[#FDF3E7]/85 backdrop-blur-xs border-2 border-[#4A3525] rounded-3xl p-3.5 sm:p-5 md:p-6 shadow-xl h-[54dvh] sm:h-[58dvh] md:h-full overflow-hidden">
-          {/* Daftar Riwayat Obrolan (Scrollable) */}
-          <div className="flex-1 overflow-y-auto pr-1 sm:pr-2 space-y-6 py-2">
+        {/* PANEL KANAN: Transparan Tanpa Bingkai Luar di HP, Kartu Penuh di Laptop */}
+        <div className="md:col-span-7 flex flex-col justify-between w-full max-w-md md:max-w-none mx-auto bg-transparent md:bg-[#FDF3E7]/85 md:border-2 md:border-[#4A3525] md:rounded-3xl p-0 md:p-6 md:shadow-xl md:h-full overflow-hidden">
+          {/* Area Riwayat Obrolan: Tinggi pas di HP agar kolom input tidak pernah tenggelam */}
+          <div
+            ref={chatContainerRef}
+            className="max-h-[38vh] md:max-h-none md:flex-1 overflow-y-auto px-1 sm:px-2 space-y-5 py-2"
+          >
             {messages.map((msg) =>
               msg.sender === "jiwoo" ? (
                 <div key={msg.id} className="w-full space-y-3 animate-pop-1">
-                  {/* BALON BICARA VEKTOR KOMIK (SUDUT MEMBULAT SEMPURNA) */}
-                  <div className="relative w-[95%] mb-6">
-                    {/* Layer Bayangan Hitam 3D di Belakang */}
+                  {/* BALON BICARA VEKTOR KOMIK */}
+                  <div className="relative w-[96%] mb-5">
                     <div
                       className="absolute inset-0 translate-x-1.5 translate-y-1.5 bg-[#1E1B18]"
-                      style={{ borderRadius: "34px" }}
+                      style={{ borderRadius: "30px" }}
                     />
 
-                    {/* Layer Utama Kotak Putih Membulat */}
                     <div
-                      className="relative bg-white border-[3.5px] border-[#1E1B18] px-5 py-4 sm:px-7 sm:py-5 text-left"
-                      style={{ borderRadius: "34px" }}
+                      className="relative bg-white border-[3px] border-[#1E1B18] px-4 py-3.5 sm:px-6 sm:py-5 text-left"
+                      style={{ borderRadius: "30px" }}
                     >
-                      {/* Garis Lengkung Kilau Komik di Pojok Kanan Atas */}
                       <svg
-                        className="absolute top-3 right-4 w-10 h-10 sm:w-12 sm:h-12 pointer-events-none"
+                        className="absolute top-2.5 right-3.5 w-8 h-8 sm:w-11 sm:h-11 pointer-events-none"
                         viewBox="0 0 60 60"
                         fill="none"
                       >
@@ -314,7 +308,7 @@ export default function CounselingScreen({ setScreen }) {
                         />
                       </svg>
 
-                      <div className="flex items-center justify-between pr-8 mb-1.5">
+                      <div className="flex items-center justify-between pr-7 mb-1">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#F4A950]">
                           Nasihat & Konseling Jiwoo
                         </span>
@@ -328,14 +322,13 @@ export default function CounselingScreen({ setScreen }) {
                         </button>
                       </div>
 
-                      <p className="text-xs sm:text-sm font-bold text-[#1E1B18] leading-relaxed pr-3 whitespace-pre-line">
+                      <p className="text-xs sm:text-sm font-bold text-[#1E1B18] leading-relaxed pr-2 whitespace-pre-line">
                         {msg.text}
                       </p>
                     </div>
 
-                    {/* Ekor Balon Bicara Melengkung Khas Komik */}
                     <svg
-                      className="absolute -bottom-6.75 left-10 w-14 h-8 pointer-events-none z-10"
+                      className="absolute -bottom-6 left-9 w-12 h-7 pointer-events-none z-10"
                       viewBox="0 0 70 42"
                       fill="none"
                     >
@@ -357,16 +350,15 @@ export default function CounselingScreen({ setScreen }) {
                     </svg>
                   </div>
 
-                  {/* Kartu Nasihat / Reframing CBT */}
                   {msg.reframing &&
                     msg.distortion &&
                     msg.distortion !== "Mode Offline" && (
-                      <div className="w-[95%] bg-[#F4A950]/90 border-2 border-[#4A3525] rounded-2xl p-3.5 text-left shadow-sm">
-                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#4A3525] underline mb-1">
+                      <div className="w-[96%] bg-[#F4A950]/90 border-2 border-[#4A3525] rounded-2xl p-3 text-left shadow-xs">
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#4A3525] underline mb-0.5">
                           <Sparkles size={13} />
                           Pola Pikir Terdeteksi: {msg.distortion}
                         </div>
-                        <p className="text-xs text-[#4A3525] leading-relaxed">
+                        <p className="text-[11px] sm:text-xs text-[#4A3525] leading-relaxed">
                           <strong>💡 Saran & Nasihat CBT:</strong>{" "}
                           {msg.reframing}
                         </p>
@@ -374,9 +366,8 @@ export default function CounselingScreen({ setScreen }) {
                     )}
                 </div>
               ) : (
-                /* Balon Chat dari User */
                 <div key={msg.id} className="flex justify-end w-full pr-1">
-                  <div className="bg-[#4A3525] text-[#FDF3E7] border-2 border-[#1E1B18] rounded-3xl rounded-tr-xs px-4 py-2.5 text-xs sm:text-sm max-w-[82%] text-left shadow-[3px_3px_0px_#1E1B18] leading-relaxed">
+                  <div className="bg-[#4A3525] text-[#FDF3E7] border-2 border-[#1E1B18] rounded-3xl rounded-tr-xs px-4 py-2 text-xs sm:text-sm max-w-[85%] text-left shadow-[2px_2px_0px_#1E1B18] leading-relaxed">
                     {msg.text}
                   </div>
                 </div>
@@ -384,43 +375,41 @@ export default function CounselingScreen({ setScreen }) {
             )}
 
             {isLoading && (
-              <div className="w-fit bg-white border-2 border-[#1E1B18] rounded-full px-5 py-2.5 text-xs font-bold text-[#4A3525] shadow-[3px_3px_0px_#1E1B18] animate-pulse">
+              <div className="w-fit bg-white border-2 border-[#1E1B18] rounded-full px-4 py-2 text-xs font-bold text-[#4A3525] shadow-[2px_2px_0px_#1E1B18] animate-pulse">
                 Jiwoo sedang merangkai saran & nasihat untukmu... 🐾
               </div>
             )}
-
-            <div ref={chatEndRef} />
           </div>
 
-          {/* Form Input Chat di Bagian Bawah */}
+          {/* Form Input Chat: Bersih & Tidak Tenggelam di HP */}
           <form
             onSubmit={handleTextSubmit}
-            className="w-full pt-3 mt-1 border-t-2 border-[#4A3525]/15 flex items-center gap-2 shrink-0"
+            className="w-full pt-2 mt-1 md:border-t-2 md:border-[#4A3525]/15 flex items-center gap-2 shrink-0"
           >
             <button
               type="button"
               onClick={toggleMute}
               title={isMuted ? "Aktifkan Suara Jiwoo" : "Matikan Suara Jiwoo"}
-              className="md:hidden p-2.5 rounded-full bg-white border-2 border-[#4A3525] text-[#4A3525] shrink-0"
+              className="md:hidden p-2.5 rounded-full bg-white border-2 border-[#1E1B18] text-[#1E1B18] shrink-0 shadow-[2px_2px_0px_#1E1B18]"
             >
-              {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
             </button>
 
             <input
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Tuliskan curhatan atau minta saran ke Jiwoo..."
-              className="flex-1 bg-white border-2 border-[#1E1B18] rounded-full px-5 py-3 text-xs sm:text-sm text-[#1E1B18] placeholder-[#4A3525]/55 focus:outline-none focus:ring-2 focus:ring-[#F4A950] shadow-inner"
+              placeholder="Ketik curhatanmu ke Jiwoo di sini..."
+              className="flex-1 bg-white border-2 border-[#1E1B18] rounded-full px-4 py-2.5 text-xs sm:text-sm text-[#1E1B18] placeholder-[#4A3525]/55 focus:outline-none shadow-[2px_2px_0px_#1E1B18]"
             />
 
             <button
               type="submit"
               disabled={isLoading || !inputText.trim()}
               aria-label="Kirim Pesan"
-              className="bg-[#F4A950] hover:bg-[#e5983e] disabled:opacity-50 border-2 border-[#1E1B18] text-[#1E1B18] p-3 sm:px-5 sm:py-3 rounded-full flex items-center justify-center active:scale-95 transition-all cursor-pointer shrink-0 shadow-[3px_3px_0px_#1E1B18]"
+              className="bg-[#F4A950] hover:bg-[#e5983e] disabled:opacity-50 border-2 border-[#1E1B18] text-[#1E1B18] p-2.5 sm:px-5 sm:py-2.5 rounded-full flex items-center justify-center active:scale-95 transition-all cursor-pointer shrink-0 shadow-[2px_2px_0px_#1E1B18]"
             >
-              <Send size={16} />
+              <Send size={15} />
             </button>
           </form>
         </div>
