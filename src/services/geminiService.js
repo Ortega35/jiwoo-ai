@@ -138,6 +138,7 @@ Balas HANYA dalam format JSON murni seperti ini:
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-goog-api-key": GEMINI_API_KEY,
         },
         body: JSON.stringify({
           contents: payloadContents,
@@ -146,7 +147,6 @@ Balas HANYA dalam format JSON murni seperti ini:
           },
         }),
       });
-
       const data = await response.json();
 
       if (!response.ok) {
