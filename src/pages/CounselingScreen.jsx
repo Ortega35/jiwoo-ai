@@ -30,11 +30,13 @@ export default function CounselingScreen({ setScreen }) {
   const fallbackTimerRef = useRef(null);
   const chatContainerRef = useRef(null);
 
-  // Scroll HANYA di dalam kotak chat (bukan menggeser seluruh layar HP)
+  // Scroll otomatis di dalam area pesan setiap ada balasan baru
   useEffect(() => {
     if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop =
-        chatContainerRef.current.scrollHeight;
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
     }
   }, [messages, isLoading]);
 
@@ -205,26 +207,30 @@ export default function CounselingScreen({ setScreen }) {
   };
 
   return (
-    <div className="relative z-10 flex flex-col justify-between w-full max-w-6xl mx-auto min-h-full pt-2 pb-24 md:py-6 px-4 sm:px-5 md:px-8 text-center">
-      {/* Grid Utama: Polos menyatu di HP, 2 Kartu Sejajar di Laptop */}
-      <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-7 items-center md:items-stretch my-auto md:h-[82vh]">
-        {/* PANEL KIRI: Transparan Tanpa Bingkai di HP, Kartu Krem di Laptop */}
-        <div className="md:col-span-5 flex flex-col items-center justify-center bg-transparent md:bg-[#F6E4CE]/80 md:border-2 md:border-[#4A3525]/25 md:rounded-3xl p-1 md:p-7 text-center md:h-full">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FDF3E7] border border-[#4A3525]/30 text-[10px] sm:text-[11px] font-bold mb-1.5 shadow-2xs">
-            <Sparkles className="text-[#F4A950] shrink-0" size={12} />
-            <span>Status Jiwoo: {uiState.statusText}</span>
+    <div className="relative z-10 flex flex-col w-full max-w-6xl mx-auto h-[calc(100dvh-56px)] md:h-dvh overflow-hidden pt-1.5 pb-[86px] landscape:pb-[74px] md:py-6 px-3 sm:px-5 md:px-8 text-center">
+      {/* Kontainer Adaptif:
+          - Portrait HP: Flex Kolom (Maskot di atas, Chat fleksibel di bawah)
+          - Landscape HP & Layar Laptop (md): 2 Kolom Berdampingan (Kiri Maskot, Kanan Chat) */}
+      <div className="flex-1 min-h-0 w-full flex flex-col landscape:flex-row md:grid md:grid-cols-12 gap-1.5 landscape:gap-4 md:gap-7 items-stretch overflow-hidden">
+        {/* PANEL KIRI / ATAS: Panggung Maskot Interaktif Jiwoo */}
+        <div className="shrink-0 landscape:w-[38%] md:w-auto md:col-span-5 flex flex-col items-center justify-center bg-transparent md:bg-[#F6E4CE]/80 md:border-2 md:border-[#4A3525]/25 md:rounded-3xl p-0.5 md:p-7 text-center md:h-full">
+          {/* Status Badge */}
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#FDF3E7] border border-[#4A3525]/30 text-[9.5px] sm:text-[11px] font-bold mb-1 shadow-2xs max-w-full">
+            <Sparkles className="text-[#F4A950] shrink-0" size={11} />
+            <span className="truncate">Status Jiwoo: {uiState.statusText}</span>
           </span>
 
+          {/* Area Maskot (Ukuran otomatis mengecil di HP pendek & mode landscape agar tidak memakan ruang chat) */}
           <div className="relative flex flex-col items-center justify-center">
             {(uiState.mode === "listening" ||
               uiState.mode === "explaining") && (
               <div
-                className={`absolute w-36 h-36 sm:w-44 sm:h-44 rounded-full border-2 animate-ping opacity-35 pointer-events-none ${uiState.ringColor}`}
+                className={`absolute w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full border-2 animate-ping opacity-35 pointer-events-none ${uiState.ringColor}`}
               />
             )}
 
             <div
-              className={`mb-0.5 z-20 px-3 py-0.5 rounded-full border-2 border-[#4A3525] text-[10px] font-bold shadow-2xs flex items-center gap-1 ${uiState.badgeColor}`}
+              className={`mb-0.5 z-20 px-2.5 py-0.5 rounded-full border-2 border-[#4A3525] text-[9.5px] sm:text-[10px] font-bold shadow-2xs flex items-center gap-1 ${uiState.badgeColor}`}
             >
               {uiState.mode === "explaining" && (
                 <Volume2 className="animate-bounce" size={11} />
@@ -235,16 +241,16 @@ export default function CounselingScreen({ setScreen }) {
             <JiwooInteractiveMascot
               mode={uiState.mode}
               onClick={handleReplayLastMessage}
-              className="relative z-10 w-66 h-60 sm:w-52 sm:h-48 md:w-60 md:h-56"
+              className="relative z-10 w-32 h-28 sm:w-40 sm:h-36 landscape:w-28 landscape:h-24 md:landscape:w-60 md:landscape:h-56 md:w-60 md:h-56"
             />
 
             {uiState.mode === "explaining" && (
-              <div className="mt-0.5 flex items-end gap-1 h-3.5">
-                <span className="w-1.5 h-2.5 bg-[#F4A950] border border-[#4A3525] rounded-full animate-bounce" />
-                <span className="w-1.5 h-3.5 bg-[#4A3525] rounded-full animate-pulse" />
+              <div className="mt-0.5 flex items-end gap-1 h-3">
                 <span className="w-1.5 h-2 bg-[#F4A950] border border-[#4A3525] rounded-full animate-bounce" />
-                <span className="w-1.5 h-3.5 bg-[#4A3525] rounded-full animate-pulse" />
-                <span className="w-1.5 h-2.5 bg-[#F4A950] border border-[#4A3525] rounded-full animate-bounce" />
+                <span className="w-1.5 h-3 bg-[#4A3525] rounded-full animate-pulse" />
+                <span className="w-1.5 h-1.5 bg-[#F4A950] border border-[#4A3525] rounded-full animate-bounce" />
+                <span className="w-1.5 h-3 bg-[#4A3525] rounded-full animate-pulse" />
+                <span className="w-1.5 h-2 bg-[#F4A950] border border-[#4A3525] rounded-full animate-bounce" />
               </div>
             )}
           </div>
@@ -274,12 +280,12 @@ export default function CounselingScreen({ setScreen }) {
           </div>
         </div>
 
-        {/* PANEL KANAN: Transparan Tanpa Bingkai Luar di HP, Kartu Penuh di Laptop */}
-        <div className="md:col-span-7 flex flex-col justify-between w-full max-w-md md:max-w-none mx-auto bg-transparent md:bg-[#FDF3E7]/85 md:border-2 md:border-[#4A3525] md:rounded-3xl p-0 md:p-6 md:shadow-xl md:h-full overflow-hidden">
-          {/* Area Riwayat Obrolan: Tinggi pas di HP agar kolom input tidak pernah tenggelam */}
+        {/* PANEL KANAN / BAWAH: Ruang Chat Fleksibel (flex-1 min-h-0 menjamin input bar tidak pernah terdorong keluar layar) */}
+        <div className="flex-1 min-h-0 landscape:w-[62%] md:w-auto md:col-span-7 flex flex-col justify-between w-full max-w-lg md:max-w-none mx-auto bg-transparent md:bg-[#FDF3E7]/85 md:border-2 md:border-[#4A3525] md:rounded-3xl p-0 md:p-6 md:shadow-xl md:h-full overflow-hidden">
+          {/* Daftar Riwayat Obrolan yang Bisa Di-scroll Penuh */}
           <div
             ref={chatContainerRef}
-            className="max-h-[38vh] md:max-h-none md:flex-1 overflow-y-auto px-1 sm:px-2 space-y-5 py-2"
+            className="flex-1 min-h-0 overflow-y-auto px-1 sm:px-2 pt-2 pb-4 space-y-5"
           >
             {messages.map((msg) =>
               msg.sender === "jiwoo" ? (
@@ -288,15 +294,15 @@ export default function CounselingScreen({ setScreen }) {
                   <div className="relative w-[96%] mb-5">
                     <div
                       className="absolute inset-0 translate-x-1.5 translate-y-1.5 bg-[#1E1B18]"
-                      style={{ borderRadius: "30px" }}
+                      style={{ borderRadius: "28px" }}
                     />
 
                     <div
-                      className="relative bg-white border-[3px] border-[#1E1B18] px-4 py-3.5 sm:px-6 sm:py-5 text-left"
-                      style={{ borderRadius: "30px" }}
+                      className="relative bg-white border-[3px] border-[#1E1B18] px-4 py-3 sm:px-6 sm:py-4 text-left"
+                      style={{ borderRadius: "28px" }}
                     >
                       <svg
-                        className="absolute top-2.5 right-3.5 w-8 h-8 sm:w-11 sm:h-11 pointer-events-none"
+                        className="absolute top-2.5 right-3.5 w-7 h-7 sm:w-10 sm:h-10 pointer-events-none"
                         viewBox="0 0 60 60"
                         fill="none"
                       >
@@ -309,7 +315,7 @@ export default function CounselingScreen({ setScreen }) {
                       </svg>
 
                       <div className="flex items-center justify-between pr-7 mb-1">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#F4A950]">
+                        <span className="text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-wider text-[#F4A950]">
                           Nasihat & Konseling Jiwoo
                         </span>
 
@@ -328,7 +334,7 @@ export default function CounselingScreen({ setScreen }) {
                     </div>
 
                     <svg
-                      className="absolute -bottom-6 left-9 w-12 h-7 pointer-events-none z-10"
+                      className="absolute -bottom-5 left-8 w-11 h-6 pointer-events-none z-10"
                       viewBox="0 0 70 42"
                       fill="none"
                     >
@@ -381,10 +387,10 @@ export default function CounselingScreen({ setScreen }) {
             )}
           </div>
 
-          {/* Form Input Chat: Bersih & Tidak Tenggelam di HP */}
+          {/* Form Input Chat: Terkunci Aman di Atas BottomNavbar pada Semua Ukuran Layar */}
           <form
             onSubmit={handleTextSubmit}
-            className="w-full pt-2 mt-1 md:border-t-2 md:border-[#4A3525]/15 flex items-center gap-2 shrink-0"
+            className="w-full pt-2 pb-1 md:pb-0 md:border-t-2 md:border-[#4A3525]/15 flex items-center gap-2 shrink-0 bg-[#FDF3E7]/90 md:bg-transparent backdrop-blur-xs"
           >
             <button
               type="button"
@@ -400,7 +406,7 @@ export default function CounselingScreen({ setScreen }) {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Ketik curhatanmu ke Jiwoo di sini..."
-              className="flex-1 bg-white border-2 border-[#1E1B18] rounded-full px-4 py-2.5 text-xs sm:text-sm text-[#1E1B18] placeholder-[#4A3525]/55 focus:outline-none shadow-[2px_2px_0px_#1E1B18]"
+              className="flex-1 min-w-0 bg-white border-2 border-[#1E1B18] rounded-full px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-[#1E1B18] placeholder-[#4A3525]/55 focus:outline-none shadow-[2px_2px_0px_#1E1B18]"
             />
 
             <button

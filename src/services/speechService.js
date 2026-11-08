@@ -272,3 +272,4 @@ function playGoogleTranslateFallback(text, onStart, onEnd) {
 
   playChunk(0, false);
 }
+ 
