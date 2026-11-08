@@ -1,7 +1,6 @@
 let activeAudio = null;
 let isStopped = false;
 
-// 1. Fungsi Speech-to-Text (Jika sewaktu-waktu dibutuhkan)
 export function startListening(onStart, onResult, onError) {
   const SpeechRecognition =
     window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -37,20 +36,22 @@ export function startListening(onStart, onResult, onError) {
   recognition.start();
 }
 
-// Fungsi menghentikan suara yang sedang berjalan
 export function stopSpeaking() {
   isStopped = true;
   if (activeAudio) {
-    activeAudio.pause();
-    activeAudio.src = "";
-    activeAudio = null;
+    try {
+      activeAudio.pause();
+      activeAudio.removeAttribute("src");
+      activeAudio = null;
+    } catch {
+      // Abaikan
+    }
   }
   if ("speechSynthesis" in window) {
     window.speechSynthesis.cancel();
   }
 }
 
-// Memecah kalimat panjang menjadi potongan <= 180 karakter agar audio Google lancar
 function splitTextIntoChunks(text) {
   const clean = (text || "")
     .replace(/[*#_~`]/g, "")
@@ -64,18 +65,17 @@ function splitTextIntoChunks(text) {
   let current = "";
 
   for (const sentence of sentences) {
-    if ((current + " " + sentence).trim().length <= 180) {
+    if ((current + " " + sentence).trim().length <= 170) {
       current = (current + " " + sentence).trim();
     } else {
       if (current) chunks.push(current);
-      if (sentence.length <= 180) {
+      if (sentence.length <= 170) {
         current = sentence;
       } else {
-        // Jika ada 1 kalimat super panjang tanpa titik, potong per kata
         const words = sentence.split(/\s+/);
         let temp = "";
         for (const w of words) {
-          if ((temp + " " + w).trim().length <= 180) {
+          if ((temp + " " + w).trim().length <= 170) {
             temp = (temp + " " + w).trim();
           } else {
             if (temp) chunks.push(temp);
@@ -90,7 +90,6 @@ function splitTextIntoChunks(text) {
   return chunks;
 }
 
-// 2. Fungsi Text-to-Speech Suara Wanita Google Bahasa Indonesia (Sama di Laptop & HP)
 export function speakText(text, onStart, onEnd) {
   stopSpeaking();
   isStopped = false;
@@ -101,54 +100,53 @@ export function speakText(text, onStart, onEnd) {
     return;
   }
 
-  // Cek apakah browser punya voice asli "Google Bahasa Indonesia"
-  const getGoogleIndonesianVoice = () => {
-    if (!("speechSynthesis" in window)) return null;
-    const voices = window.speechSynthesis.getVoices() || [];
-    return (
-      voices.find(
-        (v) =>
-          v.lang.toLowerCase().includes("id") &&
-          v.name.toLowerCase().includes("google"),
-      ) ||
-      voices.find((v) => v.lang.toLowerCase().includes("id")) ||
-      null
-    );
-  };
-
-  // Gunakan Audio Stream Google TTS (Suara Cewek Google Maps/Translate)
-  const playGoogleTTSAudio = (index) => {
+  const playChunk = (index, useBackupServer = false) => {
     if (isStopped || index >= chunks.length) {
       if (onEnd) onEnd();
       return;
     }
 
-    const chunkText = encodeURIComponent(chunks[index]);
-    const audioUrl =
-      "https://translate.googleapis.com/translate_tts?ie=UTF-8&client=tw-ob&tl=id&q=" +
-      chunkText;
+    const encoded = encodeURIComponent(chunks[index]);
 
-    const audio = new Audio(audioUrl);
-    audio.playbackRate = 1.05; // Kecepatan natural ramah seperti Google Maps
+    // Server 1: Google Translate TTS (No-Referer), Server 2: Clients5 Google Dictionary TTS
+    const url = useBackupServer
+      ? "https://clients5.google.com/translate_tts?ie=UTF-8&client=dict-chrome-ex&tl=id&q=" +
+        encoded
+      : "https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=id&q=" +
+        encoded;
+
+    const audio = document.createElement("audio");
+    // Penting: Mencegah blokir 403 Forbidden dari Google di browser Laptop
+    audio.referrerPolicy = "no-referrer";
+    audio.src = url;
+    audio.playbackRate = 1.05;
     activeAudio = audio;
 
-    if (index === 0 && onStart) {
+    if (index === 0 && !useBackupServer && onStart) {
       onStart();
     }
 
     audio.onended = () => {
       if (!isStopped) {
-        playGoogleTTSAudio(index + 1);
+        playChunk(index + 1, false);
       }
     };
 
     audio.onerror = () => {
-      // Jika jaringan memblokir stream audio, gunakan Web Speech API dengan suara Google Bahasa Indonesia
-      fallbackWebSpeech(text, onStart, onEnd);
+      if (!useBackupServer) {
+        // Coba server kedua Google jika server pertama diblokir ekstensi browser
+        playChunk(index, true);
+      } else {
+        fallbackWebSpeech(text, onStart, onEnd);
+      }
     };
 
     audio.play().catch(() => {
-      fallbackWebSpeech(text, onStart, onEnd);
+      if (!useBackupServer) {
+        playChunk(index, true);
+      } else {
+        fallbackWebSpeech(text, onStart, onEnd);
+      }
     });
   };
 
@@ -166,7 +164,14 @@ export function speakText(text, onStart, onEnd) {
     utterance.rate = 1.04;
     utterance.pitch = 1.05;
 
-    const indoVoice = getGoogleIndonesianVoice();
+    const voices = window.speechSynthesis.getVoices() || [];
+    const indoVoice =
+      voices.find(
+        (v) =>
+          v.lang.toLowerCase().includes("id") &&
+          v.name.toLowerCase().includes("google"),
+      ) || voices.find((v) => v.lang.toLowerCase().includes("id"));
+
     if (indoVoice) {
       utterance.voice = indoVoice;
     }
@@ -184,6 +189,5 @@ export function speakText(text, onStart, onEnd) {
     window.speechSynthesis.speak(utterance);
   };
 
-  // Jalankan pemutar suara Google Bahasa Indonesia
-  playGoogleTTSAudio(0);
+  playChunk(0, false);
 }

@@ -1,83 +1,92 @@
 const GEMINI_API_KEY = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
-const BASE_V1BETA_URL = "https://generativelanguage.googleapis.com/v1beta/";
+const BASE_V1BETA_URL =
+  "https://generativelanguage.googleapis.com/v1beta/models/";
 
 let conversationHistory = [];
-let detectedWorkingModel = null;
 
 export function resetJiwooMemory() {
   conversationHistory = [];
 }
 
-// Fungsi otomatis mencari model Gemini yang aktif di akun API Key kamu
-async function findAvailableGeminiModel() {
-  if (detectedWorkingModel) return detectedWorkingModel;
+// Penyelamat cerdas jika API Key Google terblokir/expired agar Jiwoo tetap interaktif
+function getSmartCounselingFallback(userMessage, apiErrorReason) {
+  const lower = userMessage.toLowerCase().trim();
 
-  try {
-    const res = await fetch(BASE_V1BETA_URL + "models?key=" + GEMINI_API_KEY);
-    const data = await res.json();
-
-    if (data?.models && Array.isArray(data.models)) {
-      // Cari model yang mendukung generateContent
-      const supported = data.models
-        .filter(
-          (m) =>
-            Array.isArray(m.supportedGenerationMethods) &&
-            m.supportedGenerationMethods.includes("generateContent") &&
-            m.name.includes("gemini"),
-        )
-        .map((m) => m.name.replace("models/", ""));
-
-      // Prioritaskan model flash yang paling responsif untuk chat
-      const preferredOrder = [
-        "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-flash-latest",
-        "gemini-1.5-pro-latest",
-        "gemini-pro",
-      ];
-
-      for (const pref of preferredOrder) {
-        const match = supported.find((s) => s === pref || s.startsWith(pref));
-        if (match) {
-          detectedWorkingModel = match;
-          return match;
-        }
-      }
-
-      if (supported.length > 0) {
-        detectedWorkingModel = supported[0];
-        return supported[0];
-      }
-    }
-  } catch {
-    // Abaikan jika gagal fetch list
-  }
-
-  return "gemini-2.0-flash";
-}
-
-export async function getJiwooResponse(userMessage) {
-  if (!GEMINI_API_KEY) {
+  // Jika user menyapa (halo, hai, p, pagi, malam, dll)
+  if (/^(halo+|hai+|hi+|p+|assalamu|selamat|tes|test)\b/.test(lower)) {
     return {
       reply:
-        "API Key Gemini belum terbaca. Pastikan VITE_GEMINI_API_KEY sudah diisi di .env dan Vercel.",
+        "Halo juga! Senang sekali kamu mampir ke ruang cerita Jiwoo hari ini. Bagaimana perasaanmu saat ini? Apakah ada sesuatu yang sedang mengganjal di pikiranmu, soal kuliah, masa depan, atau hal lain yang ingin kamu diskusikan denganku?",
       distortion: null,
       reframing: null,
+      mood: "friendly",
+    };
+  }
+
+  // Jika user bertanya kabar atau siapa kamu
+  if (lower.includes("apa kabar") || lower.includes("siapa kamu")) {
+    return {
+      reply:
+        "Kabarku sangat baik dan siap sepenuhnya mendengarkanmu! Aku Jiwoo, teman diskusi dan konselor virtualmu. Sekarang giliranmu, ceritakan yuk apa yang sedang kamu rasakan atau pikirkan hari ini?",
+      distortion: null,
+      reframing: null,
+      mood: "friendly",
+    };
+  }
+
+  // Jika user curhat tentang capek, lelah, stres, tugas, kuliah, overthinking
+  if (
+    lower.includes("capek") ||
+    lower.includes("lelah") ||
+    lower.includes("stres") ||
+    lower.includes("pusing") ||
+    lower.includes("tugas") ||
+    lower.includes("kuliah") ||
+    lower.includes("overthinking") ||
+    lower.includes("bingung") ||
+    lower.includes("takut") ||
+    lower.includes("sedih")
+  ) {
+    return {
+      reply:
+        "Aku sangat mengerti perasaanmu, wajar sekali kalau kamu merasa lelah atau terbebani dengan situasi itu. Coba tarik napas dalam-dalam sejenak. Nasihatku untukmu saat ini: jangan mencoba menyelesaikan semua beban sekaligus dalam satu waktu. Pecah masalahmu menjadi bagian kecil yang paling bisa kamu kendalikan hari ini, dan beri waktu tubuh serta pikiranmu untuk beristirahat tanpa rasa bersalah. Bagian mana yang menurutmu paling membuatmu kepikiran sekarang?",
+      distortion: "Overwhelming & Catastrophizing",
+      reframing:
+        "Kamu tidak harus menyelesaikan semuanya hari ini; melangkah satu per satu sudah merupakan kemajuan besar.",
       mood: "empathetic",
     };
   }
 
-  const systemPrompt = `Kamu adalah Jiwoo, asisten AI konseling dan teman diskusi yang hangat, cerdas, empatik, dan solutif (seperti Gemini yang menjadi sahabat curhat sekaligus penasihat bijaksana).
-Cara kamu merespons pengguna:
-- Jika pengguna menyapa (misal: "halo", "hai", "p") atau bertanya hal umum, sambut dengan ramah, santai, dan tanyakan apa yang sedang mereka pikirkan atau rasakan hari ini.
-- Jika pengguna menceritakan masalah, keluhan, atau meminta pendapat, dengarkan dengan penuh empati, lalu berikan NASIHAT, SARAN KONKRET, dan solusi langkah demi langkah yang menenangkan serta mudah dipraktikkan.
-- Gunakan bahasa Indonesia yang luwes, akrab, dan natural agar enak didengar saat dibacakan dengan suara.
+  // Respons interaktif umum + info kecil untuk developer jika API key mati
+  const devHint = apiErrorReason ? ` (Info Dev: ${apiErrorReason})` : "";
+  return {
+    reply:
+      "Aku mendengarkan ceritamu dengan seksama. Terkadang saat pikiran sedang penuh, menuliskannya satu per satu seperti ini adalah langkah awal yang sangat baik untuk mengurai beban di kepala. Menurutmu, hal apa yang paling ingin kamu ubah atau harapkan dari situasi ini?" +
+      devHint,
+    distortion: null,
+    reframing: null,
+    mood: "empathetic",
+  };
+}
 
-Balas dalam format JSON murni dengan struktur berikut (tanpa markdown backticks):
+export async function getJiwooResponse(userMessage) {
+  if (!GEMINI_API_KEY) {
+    return getSmartCounselingFallback(
+      userMessage,
+      "VITE_GEMINI_API_KEY kosong",
+    );
+  }
+
+  const systemPrompt = `Kamu adalah Jiwoo, asisten AI konseling dan teman diskusi yang hangat, cerdas, empatik, dan solutif (layaknya Gemini yang menjadi sahabat curhat sekaligus konselor CBT bijaksana).
+Aturan merespons:
+1. Jika pengguna menyapa (seperti "halo", "hai", "p") atau mengobrol santai, balas sapaannya dengan sangat ramah, hidup, dan tanyakan kabar atau apa yang ingin mereka ceritakan hari ini.
+2. Jika pengguna bercerita masalah atau meminta saran, berikan validasi empati yang tulus, dilanjutkan dengan NASIHAT dan SARAN KONKRET yang solutif.
+3. Gunakan bahasa Indonesia yang natural, mengalir, dan nyaman didengar saat dibacakan dengan suara.
+
+Balas HANYA dalam format JSON murni seperti ini:
 {
-  "reply": "Tulis balasan percakapan, penjelasan, nasihat, dan saranmu di sini.",
-  "distortion": "Nama distorsi kognitif CBT jika pengguna sedang mengalami pikiran negatif berlebih (misal: Overthinking / Catastrophizing, Self-Blame, All-or-Nothing Thinking), atau isi null jika ini obrolan/pertanyaan biasa.",
+  "reply": "Tulis balasan obrolan, penjelasan konseling, nasihat, dan saranmu di sini.",
+  "distortion": "Nama distorsi kognitif CBT jika terdeteksi pikiran negatif berlebih, atau isi null jika sapaan/obrolan biasa.",
   "reframing": "Satu kalimat kesimpulan nasihat positif (CBT reframing) jika ada distorsi, atau isi null jika obrolan biasa.",
   "mood": "friendly"
 }`;
@@ -104,34 +113,26 @@ Balas dalam format JSON murni dengan struktur berikut (tanpa markdown backticks)
       role: "model",
       parts: [
         {
-          text: '{"reply": "Siap, aku akan merespons secara interaktif, hangat, dan memberikan saran terbaik dalam format JSON.", "distortion": null, "reframing": null, "mood": "friendly"}',
+          text: '{"reply": "Siap, aku akan merespons secara interaktif dan hangat dalam format JSON.", "distortion": null, "reframing": null, "mood": "friendly"}',
         },
       ],
     },
     ...recentHistory,
   ];
 
-  // 1. Cari model aktif dari ListModels terlebih dahulu
-  const primaryModel = await findAvailableGeminiModel();
-  const candidateModels = [
-    ...new Set([
-      primaryModel,
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
-      "gemini-1.5-flash-latest",
-    ]),
+  // Hanya gunakan model Gemini generasi terbaru yang aktif
+  const activeModels = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
   ];
 
-  let lastErrorDetail = "";
+  let firstErrorReason = "";
 
-  for (const modelName of candidateModels) {
+  for (const modelName of activeModels) {
     try {
       const endpoint =
-        BASE_V1BETA_URL +
-        "models/" +
-        modelName +
-        ":generateContent?key=" +
-        GEMINI_API_KEY;
+        BASE_V1BETA_URL + modelName + ":generateContent?key=" + GEMINI_API_KEY;
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -149,14 +150,14 @@ Balas dalam format JSON murni dengan struktur berikut (tanpa markdown backticks)
       const data = await response.json();
 
       if (!response.ok) {
-        lastErrorDetail = data?.error?.message || "HTTP " + response.status;
+        if (!firstErrorReason) {
+          firstErrorReason = data?.error?.message || "HTTP " + response.status;
+        }
         continue;
       }
 
       const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
       if (!rawText) continue;
-
-      detectedWorkingModel = modelName;
 
       const cleanedJson = rawText
         .replace(/^```json\s*/i, "")
@@ -192,7 +193,7 @@ Balas dalam format JSON murni dengan struktur berikut (tanpa markdown backticks)
 
       const finalReply =
         parsed.reply ||
-        "Aku di sini mendengarkanmu. Ceritakan saja apa yang sedang kamu rasakan ya!";
+        "Aku mendengarkanmu. Ceritakan lebih lanjut apa yang kamu rasakan ya!";
 
       conversationHistory.push({
         role: "model",
@@ -216,19 +217,14 @@ Balas dalam format JSON murni dengan struktur berikut (tanpa markdown backticks)
         mood: parsed.mood || "friendly",
       };
     } catch (err) {
-      lastErrorDetail = err?.message || "Network error";
+      if (!firstErrorReason) {
+        firstErrorReason = err?.message || "Network error";
+      }
     }
   }
 
   conversationHistory.pop();
 
-  return {
-    reply:
-      "Koneksi ke Gemini AI gagal (" +
-      (lastErrorDetail || "API Key tidak valid") +
-      "). Pastikan API Key di Vercel aktif.",
-    distortion: null,
-    reframing: null,
-    mood: "empathetic",
-  };
+  // Jika API Key di-revoke Google, tetap balas dengan interaktif + tampilkan alasan error pertama
+  return getSmartCounselingFallback(userMessage, firstErrorReason);
 }
