@@ -207,7 +207,7 @@ export default function CounselingScreen({ setScreen }) {
   };
 
   return (
-    <div className="relative z-10 flex flex-col w-full max-w-6xl mx-auto h-[calc(100dvh-56px)] md:h-dvh overflow-hidden pt-1.5 pb-[86px] landscape:pb-[74px] md:py-6 px-3 sm:px-5 md:px-8 text-center">
+    <div className="relative z-10 flex flex-col w-full max-w-6xl mx-auto h-[calc(100dvh-56px)] md:h-dvh overflow-hidden pt-1.5 pb-21.5 landscape:pb-18.5 md:py-6 px-3 sm:px-5 md:px-8 text-center">
       {/* Kontainer Adaptif:
           - Portrait HP: Flex Kolom (Maskot di atas, Chat fleksibel di bawah)
           - Landscape HP & Layar Laptop (md): 2 Kolom Berdampingan (Kiri Maskot, Kanan Chat) */}
