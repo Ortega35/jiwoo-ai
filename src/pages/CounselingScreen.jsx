@@ -235,7 +235,7 @@ export default function CounselingScreen({ setScreen }) {
             <JiwooInteractiveMascot
               mode={uiState.mode}
               onClick={handleReplayLastMessage}
-              className="relative z-10 w-44 h-40 sm:w-52 sm:h-48 md:w-60 md:h-56"
+              className="relative z-10 w-66 h-60 sm:w-52 sm:h-48 md:w-60 md:h-56"
             />
 
             {uiState.mode === "explaining" && (
