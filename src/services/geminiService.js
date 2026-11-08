@@ -8,71 +8,50 @@ export function resetJiwooMemory() {
   conversationHistory = [];
 }
 
-// Fallback cerdas apabila jaringan terputus sementara
-function getSmartCounselingFallback(userMessage, apiErrorReason) {
+function getSmartCounselingFallback(userMessage) {
   const lower = userMessage.toLowerCase().trim();
 
-  // Protokol darurat keselamatan jiwa (Crisis Response)
   if (
     lower.includes("bunuh diri") ||
     lower.includes("mengakhiri hidup") ||
     lower.includes("ingin mati") ||
-    lower.includes("nyerah hidup") ||
     lower.includes("melukai diri")
   ) {
     return {
       reply:
-        "Tolong jangan lakukan itu ya, itu sama sekali bukan pilihan yang tepat. Hidupmu sangat berharga dan kamu tidak harus memikul rasa sakit atau beban berat ini sendirian. Saat pikiran terasa sangat gelap, rasa sakit itu membuat kita seolah tidak melihat jalan keluar, padahal selalu ada harapan dan bantuan untukmu. Aku sangat peduli padamu—tolong tarik napas pelan-pelan sekarang, hubungi orang terdekat yang kamu percaya, atau telepon layanan konseling darurat gratis SEJIWA di nomor 119 (ekstensi 8). Ceritakan padaku apa yang membuatmu merasa seberat ini, aku di sini mendengarkanmu.",
-      distortion: "Hopelessness & Emotional Reasoning",
+        "Tolong jangan lakukan itu ya. Hidupmu sangat berharga, dan kamu enggak harus memikul beban seberat ini sendirian. Saat pikiran lagi kalut, rasanya memang seperti buntu, tapi selalu ada jalan keluar. Tarik napas pelan-pelan sekarang, coba hubungi orang terdekat yang kamu percaya atau layanan konseling SEJIWA di 119 ekstensi 8. Aku di sini temani kamu, ceritakan pelan-pelan apa yang bikin kamu merasa seberat ini.",
+      distortion: "Hopelessness (Merasa Tanpa Harapan)",
       reframing:
-        "Rasa sakit yang kamu alami saat ini bersifat sementara, tetapi hidupmu sangat berharga dan selalu ada jalan keluar bersama bantuan yang tepat.",
+        "Rasa sakit saat ini bersifat sementara, namun hidupmu sangat berharga dan selalu ada bantuan yang siap mendukungmu.",
       mood: "empathetic",
     };
   }
 
-  if (/^(halo+|hai+|hi+|p+|assalamu|selamat|tes|test)\b/.test(lower)) {
-    return {
-      reply:
-        "Halo juga! Senang sekali kamu mampir ke ruang cerita Jiwoo hari ini. Bagaimana perasaanmu saat ini? Apakah ada sesuatu yang sedang mengganjal di pikiranmu yang ingin kamu diskusikan denganku?",
-      distortion: null,
-      reframing: null,
-      mood: "friendly",
-    };
-  }
-
-  const devHint = apiErrorReason ? ` (Info Dev: ${apiErrorReason})` : "";
   return {
     reply:
-      "Aku mendengarkan ceritamu dengan seksama. Terkadang saat pikiran sedang penuh, menuliskannya satu per satu seperti ini adalah langkah awal yang sangat baik untuk mengurai beban di kepala. Menurutmu, hal apa yang paling ingin kamu ubah atau harapkan dari situasi ini?" +
-      devHint,
+      "Aku paham maksudmu. Kadang hal seperti itu memang bikin kita banyak pikiran kalau dilihat dari satu sisi saja. Coba ceritakan sedikit lagi bagian mana yang paling bikin kamu ragu atau kepikiran saat ini?",
     distortion: null,
     reframing: null,
-    mood: "empathetic",
+    mood: "friendly",
   };
 }
 
 export async function getJiwooResponse(userMessage) {
   if (!GEMINI_API_KEY) {
-    return getSmartCounselingFallback(
-      userMessage,
-      "VITE_GEMINI_API_KEY kosong",
-    );
+    return getSmartCounselingFallback(userMessage);
   }
 
-  const systemPrompt = `Kamu adalah Jiwoo, asisten AI konseling dan teman diskusi yang hangat, cerdas, empatik, dan solutif (layaknya Gemini yang menjadi sahabat curhat sekaligus konselor CBT bijaksana).
-Aturan merespons:
-1. Jawablah setiap ucapan, pertanyaan, atau keluhan pengguna secara SINKRON, LANGSUNG, dan NYAMBUNG dengan konteks kalimat yang mereka ketikkan.
-2. Jika pengguna menyinggung keinginan menyakiti diri sendiri atau bunuh diri, TEGASKAN dengan penuh kasih sayang bahwa itu BUKAN pilihan yang tepat, berikan penguatan emosional bahwa hidup mereka berharga, dan sarankan bantuan profesional (seperti hotline SEJIWA 119 ext 8).
-3. Jika pengguna bercerita masalah atau meminta saran, berikan validasi empati yang tulus, dilanjutkan dengan NASIHAT dan SARAN KONKRET yang solutif.
-4. Gunakan bahasa Indonesia yang natural, mengalir, dan nyaman didengar saat dibacakan dengan suara.
+  // Prompt bergaya Gemini Live: Lisan, natural, to-the-point, tanpa paksaan format JSON yang membuat bahasa kaku
+  const systemPrompt = `Kamu adalah Jiwoo, teman diskusi dan konselor AI yang berbicara persis dengan gaya Gemini Live: sangat natural, hangat, cerdas, objektif, dan langsung ke inti pembicaraan.
 
-Balas HANYA dalam format JSON murni seperti ini (tanpa markdown backticks):
-{
-  "reply": "Tulis balasan obrolan, penjelasan konseling, nasihat, dan saranmu yang menjawab langsung pertanyaan pengguna di sini.",
-  "distortion": "Nama distorsi kognitif CBT jika terdeteksi pikiran negatif berlebih, atau isi null jika sapaan/obrolan biasa.",
-  "reframing": "Satu kalimat kesimpulan nasihat positif (CBT reframing) jika ada distorsi, atau isi null jika obrolan biasa.",
-  "mood": "friendly"
-}`;
+CARA BERBICARA (WAJIB DIIKUTI):
+1. Gunakan bahasa Indonesia lisan yang mengalir alami untuk diucapkan dengan suara (seperti mengobrol langsung di telepon). Jangan gunakan poin-poin bernomor, jangan gunakan tanda bintang markdown (*), dan jangan terdengar seperti robot atau buku teks.
+2. Jawablah secara ringkas, padat, dan bernas (sekitar 2 sampai 4 kalimat saja per balasan) agar nyaman didengarkan, persis seperti gaya bicara Gemini Live.
+3. Jika pengguna bertanya pendapat umum (contoh: "Menurutmu kuliah penting enggak?"), berikan sudut pandang yang berimbang, realistis, dan membuka wawasan seperti teman diskusi yang pintar.
+4. Jika pengguna sedang curhat, sedih, atau overthinking, validasi perasaannya secara singkat lalu berikan nasihat praktis yang menenangkan.
+5. OPSIONAL KHUSUS CURHAT BERAT: Hanya jika pengguna jelas-jelas menunjukkan pola pikir negatif yang ekstrem (overthinking berat/menyalahkan diri sendiri), tambahkan baris baru di paling akhir dengan format:
+[CBT: Nama Pola Pikir | Satu kalimat sudut pandang baru yang positif]
+Jika pengguna hanya bertanya biasa atau mengobrol santai, JANGAN tulis tag [CBT: ...] sama sekali.`;
 
   conversationHistory.push({
     role: "user",
@@ -84,34 +63,25 @@ Balas HANYA dalam format JSON murni seperti ini (tanpa markdown backticks):
   const payloadContents = [
     {
       role: "user",
-      parts: [
-        {
-          text:
-            "INSTRUKSI PERAN (Patuhi selalu dalam setiap balasan):\n" +
-            systemPrompt,
-        },
-      ],
+      parts: [{ text: "INSTRUKSI GAYA BICARA:\n" + systemPrompt }],
     },
     {
       role: "model",
       parts: [
         {
-          text: '{"reply": "Siap, aku akan menjawab setiap pesan pengguna secara langsung, relevan, dan empatik dalam format JSON.", "distortion": null, "reframing": null, "mood": "friendly"}',
+          text: "Siap, aku akan menjawab setiap obrolan dan pertanyaan dengan gaya bicara lisan yang natural, mengalir, hangat, dan ringkas seperti Gemini Live.",
         },
       ],
     },
     ...recentHistory,
   ];
 
-  // Menggunakan gemini-3.0-flash sesuai instruksi resmi dari server Google AI Studio untuk API Key baru
   const activeModels = [
     "gemini-3.0-flash",
     "gemini-3-flash-preview",
-    "gemini-2.5-pro",
     "gemini-2.5-flash",
+    "gemini-2.0-flash",
   ];
-
-  let firstErrorReason = "";
 
   for (const modelName of activeModels) {
     try {
@@ -127,88 +97,45 @@ Balas HANYA dalam format JSON murni seperti ini (tanpa markdown backticks):
         body: JSON.stringify({
           contents: payloadContents,
           generationConfig: {
-            temperature: 0.7,
+            temperature: 0.8,
           },
         }),
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        if (!firstErrorReason) {
-          firstErrorReason = data?.error?.message || "HTTP " + response.status;
-        }
-        continue;
-      }
+      if (!response.ok) continue;
 
       const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
       if (!rawText) continue;
 
-      const cleanedJson = rawText
-        .replace(/^```json\s*/i, "")
-        .replace(/^```\s*/i, "")
-        .replace(/\s*```$/, "")
-        .trim();
+      // Pisahkan teks obrolan natural dengan catatan CBT (jika ada)
+      let cleanReply = rawText.replace(/[*#`]/g, "").trim();
+      let distortion = null;
+      let reframing = null;
 
-      let parsed;
-      try {
-        parsed = JSON.parse(cleanedJson);
-      } catch {
-        const jsonMatch = cleanedJson.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            parsed = JSON.parse(jsonMatch[0]);
-          } catch {
-            parsed = {
-              reply: cleanedJson.replace(/[*#`]/g, ""),
-              distortion: null,
-              reframing: null,
-              mood: "friendly",
-            };
-          }
-        } else {
-          parsed = {
-            reply: cleanedJson.replace(/[*#`]/g, ""),
-            distortion: null,
-            reframing: null,
-            mood: "friendly",
-          };
-        }
+      const cbtMatch = cleanReply.match(/\[CBT:\s*([^|]+)\|\s*([^\]]+)\]/i);
+      if (cbtMatch) {
+        distortion = cbtMatch[1].trim();
+        reframing = cbtMatch[2].trim();
+        cleanReply = cleanReply.replace(cbtMatch[0], "").trim();
       }
-
-      const finalReply =
-        parsed.reply ||
-        "Aku mendengarkanmu. Ceritakan lebih lanjut apa yang kamu rasakan ya!";
 
       conversationHistory.push({
         role: "model",
-        parts: [{ text: finalReply }],
+        parts: [{ text: cleanReply }],
       });
 
       return {
-        reply: finalReply,
-        distortion:
-          parsed.distortion &&
-          parsed.distortion !== "null" &&
-          parsed.distortion !== "Tidak ada"
-            ? parsed.distortion
-            : null,
-        reframing:
-          parsed.reframing &&
-          parsed.reframing !== "null" &&
-          parsed.reframing !== "Tidak ada"
-            ? parsed.reframing
-            : null,
-        mood: parsed.mood || "friendly",
+        reply: cleanReply,
+        distortion,
+        reframing,
+        mood: "friendly",
       };
-    } catch (err) {
-      if (!firstErrorReason) {
-        firstErrorReason = err?.message || "Network error";
-      }
+    } catch {
+      // Coba model berikutnya
     }
   }
 
   conversationHistory.pop();
-
-  return getSmartCounselingFallback(userMessage, firstErrorReason);
+  return getSmartCounselingFallback(userMessage);
 }
