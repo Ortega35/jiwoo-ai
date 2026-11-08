@@ -8,56 +8,38 @@ export function resetJiwooMemory() {
   conversationHistory = [];
 }
 
-// Penyelamat cerdas jika API Key Google terblokir/expired agar Jiwoo tetap interaktif
+// Fallback cerdas apabila jaringan terputus sementara
 function getSmartCounselingFallback(userMessage, apiErrorReason) {
   const lower = userMessage.toLowerCase().trim();
 
-  // Jika user menyapa (halo, hai, p, pagi, malam, dll)
-  if (/^(halo+|hai+|hi+|p+|assalamu|selamat|tes|test)\b/.test(lower)) {
-    return {
-      reply:
-        "Halo juga! Senang sekali kamu mampir ke ruang cerita Jiwoo hari ini. Bagaimana perasaanmu saat ini? Apakah ada sesuatu yang sedang mengganjal di pikiranmu, soal kuliah, masa depan, atau hal lain yang ingin kamu diskusikan denganku?",
-      distortion: null,
-      reframing: null,
-      mood: "friendly",
-    };
-  }
-
-  // Jika user bertanya kabar atau siapa kamu
-  if (lower.includes("apa kabar") || lower.includes("siapa kamu")) {
-    return {
-      reply:
-        "Kabarku sangat baik dan siap sepenuhnya mendengarkanmu! Aku Jiwoo, teman diskusi dan konselor virtualmu. Sekarang giliranmu, ceritakan yuk apa yang sedang kamu rasakan atau pikirkan hari ini?",
-      distortion: null,
-      reframing: null,
-      mood: "friendly",
-    };
-  }
-
-  // Jika user curhat tentang capek, lelah, stres, tugas, kuliah, overthinking
+  // Protokol darurat keselamatan jiwa (Crisis Response)
   if (
-    lower.includes("capek") ||
-    lower.includes("lelah") ||
-    lower.includes("stres") ||
-    lower.includes("pusing") ||
-    lower.includes("tugas") ||
-    lower.includes("kuliah") ||
-    lower.includes("overthinking") ||
-    lower.includes("bingung") ||
-    lower.includes("takut") ||
-    lower.includes("sedih")
+    lower.includes("bunuh diri") ||
+    lower.includes("mengakhiri hidup") ||
+    lower.includes("ingin mati") ||
+    lower.includes("nyerah hidup") ||
+    lower.includes("melukai diri")
   ) {
     return {
       reply:
-        "Aku sangat mengerti perasaanmu, wajar sekali kalau kamu merasa lelah atau terbebani dengan situasi itu. Coba tarik napas dalam-dalam sejenak. Nasihatku untukmu saat ini: jangan mencoba menyelesaikan semua beban sekaligus dalam satu waktu. Pecah masalahmu menjadi bagian kecil yang paling bisa kamu kendalikan hari ini, dan beri waktu tubuh serta pikiranmu untuk beristirahat tanpa rasa bersalah. Bagian mana yang menurutmu paling membuatmu kepikiran sekarang?",
-      distortion: "Overwhelming & Catastrophizing",
+        "Tolong jangan lakukan itu ya, itu sama sekali bukan pilihan yang tepat. Hidupmu sangat berharga dan kamu tidak harus memikul rasa sakit atau beban berat ini sendirian. Saat pikiran terasa sangat gelap, rasa sakit itu membuat kita seolah tidak melihat jalan keluar, padahal selalu ada harapan dan bantuan untukmu. Aku sangat peduli padamu—tolong tarik napas pelan-pelan sekarang, hubungi orang terdekat yang kamu percaya, atau telepon layanan konseling darurat gratis SEJIWA di nomor 119 (ekstensi 8). Ceritakan padaku apa yang membuatmu merasa seberat ini, aku di sini mendengarkanmu.",
+      distortion: "Hopelessness & Emotional Reasoning",
       reframing:
-        "Kamu tidak harus menyelesaikan semuanya hari ini; melangkah satu per satu sudah merupakan kemajuan besar.",
+        "Rasa sakit yang kamu alami saat ini bersifat sementara, tetapi hidupmu sangat berharga dan selalu ada jalan keluar bersama bantuan yang tepat.",
       mood: "empathetic",
     };
   }
 
-  // Respons interaktif umum + info kecil untuk developer jika API key mati
+  if (/^(halo+|hai+|hi+|p+|assalamu|selamat|tes|test)\b/.test(lower)) {
+    return {
+      reply:
+        "Halo juga! Senang sekali kamu mampir ke ruang cerita Jiwoo hari ini. Bagaimana perasaanmu saat ini? Apakah ada sesuatu yang sedang mengganjal di pikiranmu yang ingin kamu diskusikan denganku?",
+      distortion: null,
+      reframing: null,
+      mood: "friendly",
+    };
+  }
+
   const devHint = apiErrorReason ? ` (Info Dev: ${apiErrorReason})` : "";
   return {
     reply:
@@ -79,13 +61,14 @@ export async function getJiwooResponse(userMessage) {
 
   const systemPrompt = `Kamu adalah Jiwoo, asisten AI konseling dan teman diskusi yang hangat, cerdas, empatik, dan solutif (layaknya Gemini yang menjadi sahabat curhat sekaligus konselor CBT bijaksana).
 Aturan merespons:
-1. Jika pengguna menyapa (seperti "halo", "hai", "p") atau mengobrol santai, balas sapaannya dengan sangat ramah, hidup, dan tanyakan kabar atau apa yang ingin mereka ceritakan hari ini.
-2. Jika pengguna bercerita masalah atau meminta saran, berikan validasi empati yang tulus, dilanjutkan dengan NASIHAT dan SARAN KONKRET yang solutif.
-3. Gunakan bahasa Indonesia yang natural, mengalir, dan nyaman didengar saat dibacakan dengan suara.
+1. Jawablah setiap ucapan, pertanyaan, atau keluhan pengguna secara SINKRON, LANGSUNG, dan NYAMBUNG dengan konteks kalimat yang mereka ketikkan.
+2. Jika pengguna menyinggung keinginan menyakiti diri sendiri atau bunuh diri, TEGASKAN dengan penuh kasih sayang bahwa itu BUKAN pilihan yang tepat, berikan penguatan emosional bahwa hidup mereka berharga, dan sarankan bantuan profesional (seperti hotline SEJIWA 119 ext 8).
+3. Jika pengguna bercerita masalah atau meminta saran, berikan validasi empati yang tulus, dilanjutkan dengan NASIHAT dan SARAN KONKRET yang solutif.
+4. Gunakan bahasa Indonesia yang natural, mengalir, dan nyaman didengar saat dibacakan dengan suara.
 
-Balas HANYA dalam format JSON murni seperti ini:
+Balas HANYA dalam format JSON murni seperti ini (tanpa markdown backticks):
 {
-  "reply": "Tulis balasan obrolan, penjelasan konseling, nasihat, dan saranmu di sini.",
+  "reply": "Tulis balasan obrolan, penjelasan konseling, nasihat, dan saranmu yang menjawab langsung pertanyaan pengguna di sini.",
   "distortion": "Nama distorsi kognitif CBT jika terdeteksi pikiran negatif berlebih, atau isi null jika sapaan/obrolan biasa.",
   "reframing": "Satu kalimat kesimpulan nasihat positif (CBT reframing) jika ada distorsi, atau isi null jika obrolan biasa.",
   "mood": "friendly"
@@ -113,18 +96,19 @@ Balas HANYA dalam format JSON murni seperti ini:
       role: "model",
       parts: [
         {
-          text: '{"reply": "Siap, aku akan merespons secara interaktif dan hangat dalam format JSON.", "distortion": null, "reframing": null, "mood": "friendly"}',
+          text: '{"reply": "Siap, aku akan menjawab setiap pesan pengguna secara langsung, relevan, dan empatik dalam format JSON.", "distortion": null, "reframing": null, "mood": "friendly"}',
         },
       ],
     },
     ...recentHistory,
   ];
 
-  // Hanya gunakan model Gemini generasi terbaru yang aktif
+  // Menggunakan gemini-3.0-flash sesuai instruksi resmi dari server Google AI Studio untuk API Key baru
   const activeModels = [
+    "gemini-3.0-flash",
+    "gemini-3-flash-preview",
+    "gemini-2.5-pro",
     "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
   ];
 
   let firstErrorReason = "";
@@ -143,10 +127,11 @@ Balas HANYA dalam format JSON murni seperti ini:
         body: JSON.stringify({
           contents: payloadContents,
           generationConfig: {
-            temperature: 0.75,
+            temperature: 0.7,
           },
         }),
       });
+
       const data = await response.json();
 
       if (!response.ok) {
@@ -225,6 +210,5 @@ Balas HANYA dalam format JSON murni seperti ini:
 
   conversationHistory.pop();
 
-  // Jika API Key di-revoke Google, tetap balas dengan interaktif + tampilkan alasan error pertama
   return getSmartCounselingFallback(userMessage, firstErrorReason);
 }
