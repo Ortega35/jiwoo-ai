@@ -1,7 +1,6 @@
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const GEMINI_API_KEY = (import.meta.env.VITE_GEMINI_API_KEY || "").trim();
 const BASE_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/";
 
-// Menyimpan riwayat obrolan di memori agar percakapan nyambung terus seperti chat biasa
 let conversationHistory = [];
 
 export function resetJiwooMemory() {
@@ -12,7 +11,7 @@ export async function getJiwooResponse(userMessage) {
   if (!GEMINI_API_KEY) {
     return {
       reply:
-        "API Key Gemini belum terbaca. Pastikan VITE_GEMINI_API_KEY sudah benar di .env dan Vercel.",
+        "API Key Gemini belum terbaca. Pastikan VITE_GEMINI_API_KEY sudah diisi di file .env dan Environment Variables Vercel.",
       distortion: null,
       reframing: null,
       mood: "empathetic",
@@ -23,27 +22,53 @@ export async function getJiwooResponse(userMessage) {
 Tugas utamamu ketika pengguna bercerita, mengeluh, atau bertanya:
 1. Dengarkan dan validasi perasaan mereka dengan tulus seperti sahabat dekat yang bijaksana.
 2. Berikan NASIHAT, SARAN KONKRET, dan langkah praktis yang bisa langsung mereka terapkan untuk mengatasi masalah atau overthinking mereka.
-3. Gunakan bahasa Indonesia yang santai, mengalir, hangat, dan mudah dipahami (jangan kaku seperti robot, dan jangan terlalu pendek—berikan penjelasan yang menenangkan dan solutif).
+3. Gunakan bahasa Indonesia yang santai, mengalir, hangat, dan mudah dipahami.
 
-Kamu WAJIB mengembalikan respons HANYA dalam format JSON murni dengan struktur persis seperti ini:
+Balas HANYA dalam format JSON murni dengan struktur persis seperti ini (tanpa markdown backticks):
 {
   "reply": "Tulis tanggapan empatik, penjelasan konseling, nasihat mendalam, dan saran praktis untuk pengguna di sini.",
-  "distortion": "Nama distorsi kognitif jika terdeteksi (misal: Overgeneralization, Catastrophizing, All-or-Nothing Thinking, Mental Filter) atau isi null jika pengguna hanya bertanya biasa/tidak ada distorsi.",
-  "reframing": "Satu kalimat kesimpulan nasihat positif / sudut pandang baru (CBT reframing), atau isi null jika tidak ada distorsi.",
+  "distortion": "Nama distorsi kognitif jika terdeteksi (misal: Overgeneralization, Catastrophizing, All-or-Nothing Thinking) atau null jika tidak ada.",
+  "reframing": "Satu kalimat kesimpulan nasihat positif / sudut pandang baru (CBT reframing), atau null jika tidak ada.",
   "mood": "friendly"
 }`;
 
-  // Tambahkan pesan terbaru user ke riwayat percakapan
   conversationHistory.push({
     role: "user",
     parts: [{ text: userMessage }],
   });
 
-  // Batasi riwayat maksimal 10 pesan terakhir agar tetap cepat & hemat kuota
-  const recentHistory = conversationHistory.slice(-10);
+  const recentHistory = conversationHistory.slice(-8);
 
-  // Daftar model Gemini (otomatis mencoba cadangan jika model pertama sibuk)
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
+  // Gabungkan instruksi sistem secara aman agar diterima oleh semua versi model Gemini
+  const payloadContents = [
+    {
+      role: "user",
+      parts: [
+        {
+          text:
+            "INSTRUKSI SISTEM (Jangan dibahas, cukup patuhi):\n" + systemPrompt,
+        },
+      ],
+    },
+    {
+      role: "model",
+      parts: [
+        {
+          text: '{"reply": "Siap, aku mengerti dan akan membalas dalam format JSON.", "distortion": null, "reframing": null, "mood": "friendly"}',
+        },
+      ],
+    },
+    ...recentHistory,
+  ];
+
+  const models = [
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-flash",
+  ];
+
+  let lastErrorDetail = "";
 
   for (const modelName of models) {
     try {
@@ -56,27 +81,23 @@ Kamu WAJIB mengembalikan respons HANYA dalam format JSON murni dengan struktur p
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          systemInstruction: {
-            parts: [{ text: systemPrompt }],
-          },
-          contents: recentHistory,
+          contents: payloadContents,
           generationConfig: {
             temperature: 0.75,
-            responseMimeType: "application/json",
           },
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
+        lastErrorDetail = data?.error?.message || `HTTP ${response.status}`;
         continue;
       }
 
-      const data = await response.json();
       const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
       if (!rawText) continue;
 
-      // Bersihkan jika Gemini masih membungkus dengan ```json ... ```
       const cleanedJson = rawText
         .replace(/^```json\s*/i, "")
         .replace(/^```\s*/i, "")
@@ -87,19 +108,33 @@ Kamu WAJIB mengembalikan respons HANYA dalam format JSON murni dengan struktur p
       try {
         parsed = JSON.parse(cleanedJson);
       } catch {
-        parsed = {
-          reply: rawText.replace(/[*#`]/g, ""),
-          distortion: null,
-          reframing: null,
-          mood: "empathetic",
-        };
+        // Ekstrak isi JSON jika ada teks tambahan di luar kurung kurawal
+        const jsonMatch = cleanedJson.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            parsed = JSON.parse(jsonMatch[0]);
+          } catch {
+            parsed = {
+              reply: cleanedJson.replace(/[*#`]/g, ""),
+              distortion: null,
+              reframing: null,
+              mood: "friendly",
+            };
+          }
+        } else {
+          parsed = {
+            reply: cleanedJson.replace(/[*#`]/g, ""),
+            distortion: null,
+            reframing: null,
+            mood: "friendly",
+          };
+        }
       }
 
       const finalReply =
         parsed.reply ||
         "Aku mendengarkanmu. Boleh ceritakan lebih lanjut apa yang kamu rasakan saat ini?";
 
-      // Simpan balasan Jiwoo ke riwayat agar obrolan berikutnya tetap nyambung
       conversationHistory.push({
         role: "model",
         parts: [{ text: finalReply }],
@@ -121,14 +156,16 @@ Kamu WAJIB mengembalikan respons HANYA dalam format JSON murni dengan struktur p
             : null,
         mood: parsed.mood || "friendly",
       };
-    } catch {
-      // Lanjut mencoba model cadangan
+    } catch (err) {
+      lastErrorDetail = err?.message || "Network error";
     }
   }
 
+  // Hapus pesan gagal dari history agar tidak menyumbat chat berikutnya
+  conversationHistory.pop();
+
   return {
-    reply:
-      "Maaf ya, saat ini koneksi ke server AI sedang sibuk atau API Key perlu diperbarui. Coba kirimkan pesanmu sekali lagi ya!",
+    reply: `Koneksi ke Gemini AI ditolak (${lastErrorDetail || "API Key tidak valid/terblokir"}). Silakan buat API Key baru di aistudio.google.com lalu perbarui VITE_GEMINI_API_KEY di .env dan Vercel.`,
     distortion: null,
     reframing: null,
     mood: "empathetic",
