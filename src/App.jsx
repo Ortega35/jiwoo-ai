@@ -121,10 +121,10 @@ export default function App() {
     setCurrentUser(getCurrentUser());
     setScreen(4);
   };
-
+// mengembalikkan
   return (
     <div className="h-dvh w-full bg-[#FDF3E7] flex font-serif select-none overflow-hidden text-[#4A3525]">
-      {/* SIDEBAR KHUSUS LAPTOP/DESKTOP */}
+  {/* khusu laptop */}
       {isDashboard && (
         <aside className="hidden md:flex w-72 bg-[#F6E4CE] border-r-2 border-[#4A3525]/15 flex-col justify-between p-6 z-30 shrink-0 shadow-lg">
           <div>

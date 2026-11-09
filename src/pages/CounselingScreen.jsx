@@ -1,209 +1,432 @@
-import { useState } from "react";
-import { Mic, MicOff, Send, Sparkles, RotateCcw } from "lucide-react";
-import jiwooMascot from "../assets/jiwoo.svg";
+import { useState, useEffect, useRef } from "react";
+import { Send, Sparkles, RotateCcw, Volume2, VolumeX } from "lucide-react";
+import JiwooInteractiveMascot from "../components/JiwooInteractiveMascot";
 import BottomNavbar from "../components/BottomNavbar";
-import { getJiwooResponse } from "../services/geminiService";
-import { startListening, speakText } from "../services/speechService";
+import { getJiwooResponse, resetJiwooMemory } from "../services/geminiService";
+import { speakText } from "../services/speechService";
 import { getCurrentUser } from "../services/authService";
 
 export default function CounselingScreen({ setScreen }) {
   const currentUser = getCurrentUser();
   const firstName = (currentUser.name || "Teman").split(" ")[0].toUpperCase();
 
-  const [userText, setUserText] = useState("");
+  const initialGreeting = `Hai ${firstName}, selamat datang di Jiwoo! Aplikasi konseling yang dirancang untuk siap mendengarkan semua curahan isi hatimu. Ceritakan apa yang sedang membebani pikiranmu, aku siap memberikan saran dan nasihat terbaik untukmu.`;
+
+  const [messages, setMessages] = useState([
+    {
+      id: "welcome-msg",
+      sender: "jiwoo",
+      text: initialGreeting,
+      distortion: null,
+      reframing: null,
+    },
+  ]);
+
   const [inputText, setInputText] = useState("");
-  const [jiwooData, setJiwooData] = useState({
-    reply: `Haloo ${firstName}... Bagaimana Kabar mu hari ini? Ceritakan apa pun yang sedang membebani pikiranmu ya.`,
-    distortion: null,
-    reframing: null,
-    mood: "friendly",
-  });
-  const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
 
-  const processMessage = async (text) => {
-    if (!text.trim()) return;
-    setUserText(text);
-    setIsLoading(true);
-    try {
-      const response = await getJiwooResponse(text);
-      setJiwooData(response);
-      speakText(response.reply);
-    } catch {
-      setJiwooData({
-        reply:
-          "Maaf ya, koneksi Jiwoo sedang terganggu. Coba ceritakan lagi ya!",
-        distortion: null,
-        reframing: null,
-        mood: "empathetic",
+  const fallbackTimerRef = useRef(null);
+  const chatContainerRef = useRef(null);
+
+  // Scroll otomatis di dalam area pesan setiap ada balasan baru
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: "smooth",
       });
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [messages, isLoading]);
 
-  const handleMicClick = () => {
-    if (isListening || isLoading) return;
-    startListening(
-      () => setIsListening(true),
-      async (transcript) => {
-        setIsListening(false);
-        await processMessage(transcript);
-      },
-      (errMessage) => {
-        setIsListening(false);
-        if (errMessage) {
-          setJiwooData((prev) => ({ ...prev, reply: errMessage }));
-        }
+  const triggerJiwooSpeech = (text) => {
+    if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+
+    if (isMuted) {
+      setIsSpeaking(false);
+      return;
+    }
+
+    setIsSpeaking(true);
+
+    const words = (text || "").trim().split(/\s+/).length;
+    const estimatedMs = Math.min(Math.max(words * 380, 3200), 18000);
+    fallbackTimerRef.current = setTimeout(() => {
+      setIsSpeaking(false);
+    }, estimatedMs);
+
+    speakText(
+      text,
+      () => setIsSpeaking(true),
+      () => {
+        if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+        setIsSpeaking(false);
       },
     );
   };
 
+  useEffect(() => {
+    return () => {
+      if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  const isUserTyping = inputText.trim().length > 0 && !isLoading;
+
+  const getJiwooInteractiveState = () => {
+    if (isUserTyping) {
+      return {
+        mode: "listening",
+        statusText: "Menyimak Curhatanmu... 👂",
+        badgeText: "Aku menyimak tulisanmu... 🐾",
+        badgeColor: "bg-[#F4A950] text-[#4A3525]",
+        ringColor: "border-[#F4A950] bg-[#F4A950]/20",
+      };
+    }
+
+    if (isLoading) {
+      return {
+        mode: "thinking",
+        statusText: "Merangkai Nasihat & Saran Terbaik... 💭",
+        badgeText: "Hmm, merangkai saran... 💭",
+        badgeColor: "bg-white text-[#4A3525]",
+        ringColor: "border-[#4A3525]/40 bg-[#F6E4CE]/40",
+      };
+    }
+
+    if (isSpeaking) {
+      return {
+        mode: "explaining",
+        statusText: "Jiwoo Sedang Menjelaskan Nasihat 💬",
+        badgeText: "Sedang berbicara & menasihati... 💬",
+        badgeColor: "bg-green-600 text-white",
+        ringColor: "border-green-500 bg-green-300/25",
+      };
+    }
+
+    return {
+      mode: "greeting",
+      statusText:
+        messages.length > 1
+          ? "Siap Mendengarkan Cerita Lanjutan"
+          : "Menyapa & Siap Mendengarkan 👋",
+      badgeText:
+        messages.length > 1 ? "Ceritakan lagi yuk! 🐾" : `Hai ${firstName}! 👋`,
+      badgeColor: "bg-[#FDF3E7] text-[#4A3525]",
+      ringColor: "",
+    };
+  };
+
+  const uiState = getJiwooInteractiveState();
+
   const handleTextSubmit = async (e) => {
     e.preventDefault();
-    if (!inputText.trim() || isLoading) return;
-    const message = inputText;
+    const trimmed = inputText.trim();
+    if (!trimmed || isLoading) return;
+
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
+
+    const userMsg = {
+      id: `user-${Date.now()}`,
+      sender: "user",
+      text: trimmed,
+    };
+    setMessages((prev) => [...prev, userMsg]);
     setInputText("");
-    await processMessage(message);
+    setIsLoading(true);
+
+    try {
+      const response = await getJiwooResponse(trimmed);
+      const jiwooMsg = {
+        id: `jiwoo-${Date.now()}`,
+        sender: "jiwoo",
+        text: response.reply,
+        distortion: response.distortion,
+        reframing: response.reframing,
+      };
+      setMessages((prev) => [...prev, jiwooMsg]);
+      setIsLoading(false);
+      triggerJiwooSpeech(response.reply);
+    } catch {
+      const fallbackReply =
+        "Maaf ya, koneksi sedang kurang stabil. Tarik napas pelan-pelan, dan coba kirimkan lagi ceritamu ya!";
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `jiwoo-err-${Date.now()}`,
+          sender: "jiwoo",
+          text: fallbackReply,
+          distortion: null,
+          reframing: null,
+        },
+      ]);
+      setIsLoading(false);
+      triggerJiwooSpeech(fallbackReply);
+    }
   };
 
   const handleResetSession = () => {
-    setUserText("");
-    setJiwooData({
-      reply: `Sesi telah disegarkan. Aku siap mendengarkan cerita barumu, ${firstName}! 🐾`,
-      distortion: null,
-      reframing: null,
-      mood: "friendly",
-    });
+    if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    resetJiwooMemory();
+    setIsSpeaking(false);
+    setMessages([
+      {
+        id: `welcome-${Date.now()}`,
+        sender: "jiwoo",
+        text: initialGreeting,
+        distortion: null,
+        reframing: null,
+      },
+    ]);
+    triggerJiwooSpeech(initialGreeting);
+  };
+
+  const toggleMute = () => {
+    if (!isMuted && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+    setIsMuted(!isMuted);
+  };
+
+  const lastJiwooMessage =
+    [...messages].reverse().find((m) => m.sender === "jiwoo") || messages[0];
+
+  const handleReplayLastMessage = () => {
+    triggerJiwooSpeech(lastJiwooMessage.text);
   };
 
   return (
-    <div className="relative z-10 flex flex-col justify-between min-h-full w-full max-w-6xl mx-auto pt-4 pb-24 md:pb-8 px-4 sm:px-5 md:p-8 text-center">
-      {/* Kontainer Utama: 1 Kolom di HP, 2 Kolom Berdampingan di Laptop */}
-      <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 items-center my-auto">
-        {/* PANEL KIRI: Transparan di HP, Kartu Krem di Laptop */}
-        <div className="md:col-span-5 flex flex-col items-center justify-center bg-transparent md:bg-[#F6E4CE]/70 md:border-2 md:border-[#4A3525]/20 md:rounded-3xl md:p-8 md:h-full">
-          <span className="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FDF3E7] border border-[#4A3525]/30 text-[11px] font-bold mb-4">
-            <Sparkles size={12} className="text-[#F4A950]" />
-            Status Jiwoo:{" "}
-            {isLoading ? "Sedang Merespons..." : "Siap Mendengarkan"}
+    <div className="relative z-10 flex flex-col w-full max-w-6xl mx-auto h-[calc(100dvh-56px)] md:h-dvh overflow-hidden pt-1.5 pb-21.5 landscape:pb-18.5 md:py-6 px-3 sm:px-5 md:px-8 text-center">
+      {/* Kontainer Adaptif:
+          - Portrait HP: Flex Kolom (Maskot di atas, Chat fleksibel di bawah)
+          - Landscape HP & Layar Laptop (md): 2 Kolom Berdampingan (Kiri Maskot, Kanan Chat) */}
+      <div className="flex-1 min-h-0 w-full flex flex-col landscape:flex-row md:grid md:grid-cols-12 gap-1.5 landscape:gap-4 md:gap-7 items-stretch overflow-hidden">
+        {/* PANEL KIRI / ATAS: Panggung Maskot Interaktif Jiwoo */}
+        <div className="shrink-0 landscape:w-[38%] md:w-auto md:col-span-5 flex flex-col items-center justify-center bg-transparent md:bg-[#F6E4CE]/80 md:border-2 md:border-[#4A3525]/25 md:rounded-3xl p-0.5 md:p-7 text-center md:h-full">
+          {/* Status Badge */}
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[#FDF3E7] border border-[#4A3525]/30 text-[9.5px] sm:text-[11px] font-bold mb-1 shadow-2xs max-w-full">
+            <Sparkles className="text-[#F4A950] shrink-0" size={11} />
+            <span className="truncate">Status Jiwoo: {uiState.statusText}</span>
           </span>
 
-          <div className="relative flex flex-col items-center my-1">
-            <img
-              src={jiwooMascot}
-              alt="Jiwoo Mascot"
-              draggable={false}
-              className={`w-52 h-52 sm:w-60 sm:h-60 md:w-60 md:h-60 object-contain transition-transform duration-300 ${
-                isListening
-                  ? "scale-110 animate-bounce"
-                  : isLoading
-                    ? "animate-pulse scale-95"
-                    : ""
-              }`}
-            />
-          </div>
+          {/* Area Maskot (Ukuran otomatis mengecil di HP pendek & mode landscape agar tidak memakan ruang chat) */}
+          <div className="relative flex flex-col items-center justify-center">
+            {(uiState.mode === "listening" ||
+              uiState.mode === "explaining") && (
+              <div
+                className={`absolute w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full border-2 animate-ping opacity-35 pointer-events-none ${uiState.ringColor}`}
+              />
+            )}
 
-          <p className="hidden md:block mt-4 text-xs text-[#4A3525]/75 max-w-xs">
-            Kamu bisa berbicara langsung menggunakan mikrofon atau mengetikkan
-            curhatanmu di panel sebelah kanan.
-          </p>
-
-          <button
-            type="button"
-            onClick={handleResetSession}
-            className="hidden md:inline-flex items-center gap-1.5 mt-5 px-4 py-1.5 rounded-full bg-white/80 hover:bg-white border border-[#4A3525]/30 text-[11px] font-bold text-[#4A3525] cursor-pointer transition-all"
-          >
-            <RotateCcw size={12} /> Bersihkan Obrolan
-          </button>
-        </div>
-
-        {/* PANEL KANAN: Ruang Balon Dialog, Kartu CBT, & Input Chat */}
-        <div className="md:col-span-7 flex flex-col justify-between w-full max-w-md md:max-w-none mx-auto gap-3.5">
-          <div className="flex flex-col items-center md:items-start w-full gap-2.5">
-            {/* Balon Ucapan Jiwoo */}
-            <div className="relative w-full bg-white border-2 border-[#4A3525] rounded-2xl md:rounded-3xl py-3.5 px-4 md:p-6 shadow-md animate-pop-1 text-left">
-              <span className="hidden md:block text-[10px] font-bold uppercase tracking-wider text-[#F4A950] mb-1">
-                Respons Empati Jiwoo
-              </span>
-              <p className="text-xs sm:text-sm md:text-base font-bold text-[#4A3525] leading-relaxed">
-                {isLoading
-                  ? "Jiwoo sedang mendengarkan dan berpikir... 🐾"
-                  : jiwooData.reply}
-              </p>
-              <div className="md:hidden absolute -bottom-2.5 left-10 w-4 h-4 bg-white border-b-2 border-r-2 border-[#4A3525] rotate-45" />
+            <div
+              className={`mb-0.5 z-20 px-2.5 py-0.5 rounded-full border-2 border-[#4A3525] text-[9.5px] sm:text-[10px] font-bold shadow-2xs flex items-center gap-1 ${uiState.badgeColor}`}
+            >
+              {uiState.mode === "explaining" && (
+                <Volume2 className="animate-bounce" size={11} />
+              )}
+              <span>{uiState.badgeText}</span>
             </div>
 
-            {/* Pesan Terakhir User */}
-            {userText && (
-              <div className="self-end bg-[#EAE0D5] border border-[#4A3525]/30 rounded-2xl px-4 py-2 text-[11px] md:text-xs text-[#4A3525] italic max-w-md text-right">
-                “{userText}”
-              </div>
-            )}
+            <JiwooInteractiveMascot
+              mode={uiState.mode}
+              onClick={handleReplayLastMessage}
+              className="relative z-10 w-32 h-28 sm:w-40 sm:h-36 landscape:w-28 landscape:h-24 md:landscape:w-60 md:landscape:h-56 md:w-60 md:h-56"
+            />
 
-            {/* Kartu Analisis CBT (Jika Terdeteksi Distorsi Kognitif) */}
-            {jiwooData.distortion && (
-              <div className="w-full bg-[#F4A950]/90 border-2 border-[#4A3525] rounded-2xl p-3.5 text-left shadow-md animate-pop-2">
-                <div className="flex items-center gap-1.5 text-[11px] md:text-xs font-bold text-[#4A3525] underline mb-1">
-                  <Sparkles size={14} />
-                  Distorsi Kognitif: {jiwooData.distortion}
-                </div>
-                <p className="text-[10.5px] md:text-xs text-[#4A3525] leading-relaxed">
-                  <strong>Saran Reframing CBT:</strong> {jiwooData.reframing}
-                </p>
+            {uiState.mode === "explaining" && (
+              <div className="mt-0.5 flex items-end gap-1 h-3">
+                <span className="w-1.5 h-2 bg-[#F4A950] border border-[#4A3525] rounded-full animate-bounce" />
+                <span className="w-1.5 h-3 bg-[#4A3525] rounded-full animate-pulse" />
+                <span className="w-1.5 h-1.5 bg-[#F4A950] border border-[#4A3525] rounded-full animate-bounce" />
+                <span className="w-1.5 h-3 bg-[#4A3525] rounded-full animate-pulse" />
+                <span className="w-1.5 h-2 bg-[#F4A950] border border-[#4A3525] rounded-full animate-bounce" />
               </div>
             )}
           </div>
 
-          {/* Kontrol Input Suara & Teks */}
-          <div className="w-full flex flex-col items-center gap-2 bg-transparent md:bg-white/70 md:p-4 md:rounded-3xl md:border md:border-[#4A3525]/20">
+          <p className="hidden md:block mt-3 text-xs text-[#4A3525]/75 max-w-xs leading-relaxed">
+            Ketikkan curhatan atau pertanyaanmu di ruang chat sebelah kanan.
+            Jiwoo akan membalas dengan tulisan sekaligus berbicara langsung.
+          </p>
+
+          <div className="hidden md:flex items-center gap-2.5 mt-5">
             <button
               type="button"
-              onClick={handleMicClick}
-              disabled={isLoading}
-              className={`w-full py-2.5 px-6 rounded-full border-2 border-[#4A3525] font-bold text-xs md:text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer ${
-                isListening
-                  ? "bg-red-500 text-white animate-pulse"
-                  : "bg-white hover:bg-[#FDF3E7] text-[#4A3525] active:scale-95"
-              }`}
+              onClick={handleResetSession}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white hover:bg-[#FDF3E7] border border-[#4A3525]/40 text-[11px] font-bold text-[#4A3525] cursor-pointer transition-all shadow-2xs"
             >
-              {isListening ? <MicOff size={16} /> : <Mic size={16} />}
-              {isListening
-                ? "Mendengarkan Suaramu..."
-                : "Click Here To Start Speaking"}
+              <RotateCcw size={12} /> Bersihkan Obrolan
             </button>
 
-            <form onSubmit={handleTextSubmit} className="w-full flex gap-2">
-              <input
-                type="text"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder="Atau ketik curhatanmu ke Jiwoo di sini..."
-                className="flex-1 bg-white border-2 border-[#4A3525]/50 rounded-full px-4 py-2 text-xs md:text-sm text-[#4A3525] placeholder-[#4A3525]/50 focus:outline-none focus:border-[#4A3525]"
-              />
-              <button
-                type="submit"
-                disabled={isLoading}
-                aria-label="Kirim Pesan"
-                className="bg-[#F4A950] hover:bg-[#e5983e] border-2 border-[#4A3525] text-[#4A3525] px-4 py-2 rounded-full flex items-center justify-center active:scale-90 transition-transform cursor-pointer shrink-0"
-              >
-                <Send size={15} />
-              </button>
-            </form>
+            <button
+              type="button"
+              onClick={toggleMute}
+              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white hover:bg-[#FDF3E7] border border-[#4A3525]/40 text-[11px] font-bold text-[#4A3525] cursor-pointer transition-all shadow-2xs"
+            >
+              {isMuted ? <VolumeX size={13} /> : <Volume2 size={13} />}
+              {isMuted ? "Suara Mati" : "Suara Aktif"}
+            </button>
           </div>
+        </div>
+
+        {/* PANEL KANAN / BAWAH: Ruang Chat Fleksibel (flex-1 min-h-0 menjamin input bar tidak pernah terdorong keluar layar) */}
+        <div className="flex-1 min-h-0 landscape:w-[62%] md:w-auto md:col-span-7 flex flex-col justify-between w-full max-w-lg md:max-w-none mx-auto bg-transparent md:bg-[#FDF3E7]/85 md:border-2 md:border-[#4A3525] md:rounded-3xl p-0 md:p-6 md:shadow-xl md:h-full overflow-hidden">
+          {/* Daftar Riwayat Obrolan yang Bisa Di-scroll Penuh */}
+          <div
+            ref={chatContainerRef}
+            className="flex-1 min-h-0 overflow-y-auto px-1 sm:px-2 pt-2 pb-4 space-y-5"
+          >
+            {messages.map((msg) =>
+              msg.sender === "jiwoo" ? (
+                <div key={msg.id} className="w-full space-y-3 animate-pop-1">
+                  {/* BALON BICARA VEKTOR KOMIK */}
+                  <div className="relative w-[96%] mb-5">
+                    <div
+                      className="absolute inset-0 translate-x-1.5 translate-y-1.5 bg-[#1E1B18]"
+                      style={{ borderRadius: "28px" }}
+                    />
+
+                    <div
+                      className="relative bg-white border-[3px] border-[#1E1B18] px-4 py-3 sm:px-6 sm:py-4 text-left"
+                      style={{ borderRadius: "28px" }}
+                    >
+                      <svg
+                        className="absolute top-2.5 right-3.5 w-7 h-7 sm:w-10 sm:h-10 pointer-events-none"
+                        viewBox="0 0 60 60"
+                        fill="none"
+                      >
+                        <path
+                          d="M 10 8 C 34 8, 48 22, 48 46"
+                          stroke="#1E1B18"
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+
+                      <div className="flex items-center justify-between pr-7 mb-1">
+                        <span className="text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-wider text-[#F4A950]">
+                          Nasihat & Konseling Jiwoo
+                        </span>
+
+                        <button
+                          type="button"
+                          onClick={() => triggerJiwooSpeech(msg.text)}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-[#4A3525]/80 hover:text-[#1E1B18] cursor-pointer"
+                        >
+                          <Volume2 size={12} /> Putar Suara
+                        </button>
+                      </div>
+
+                      <p className="text-xs sm:text-sm font-bold text-[#1E1B18] leading-relaxed pr-2 whitespace-pre-line">
+                        {msg.text}
+                      </p>
+                    </div>
+
+                    <svg
+                      className="absolute -bottom-5 left-8 w-11 h-6 pointer-events-none z-10"
+                      viewBox="0 0 70 42"
+                      fill="none"
+                    >
+                      <path
+                        d="M 22 4 C 24 20, 32 32, 45 40 C 38 26, 40 12, 46 4 Z"
+                        fill="#1E1B18"
+                      />
+                      <path
+                        d="M 10 0 C 13 18, 24 31, 38 38 C 30 24, 30 11, 35 0 Z"
+                        fill="#FFFFFF"
+                      />
+                      <path
+                        d="M 10 2 C 13 18, 24 31, 38 38 C 30 24, 30 11, 35 2"
+                        stroke="#1E1B18"
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  </div>
+
+                  {msg.reframing &&
+                    msg.distortion &&
+                    msg.distortion !== "Mode Offline" && (
+                      <div className="w-[96%] bg-[#F4A950]/90 border-2 border-[#4A3525] rounded-2xl p-3 text-left shadow-xs">
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#4A3525] underline mb-0.5">
+                          <Sparkles size={13} />
+                          Pola Pikir Terdeteksi: {msg.distortion}
+                        </div>
+                        <p className="text-[11px] sm:text-xs text-[#4A3525] leading-relaxed">
+                          <strong>💡 Saran & Nasihat CBT:</strong>{" "}
+                          {msg.reframing}
+                        </p>
+                      </div>
+                    )}
+                </div>
+              ) : (
+                <div key={msg.id} className="flex justify-end w-full pr-1">
+                  <div className="bg-[#4A3525] text-[#FDF3E7] border-2 border-[#1E1B18] rounded-3xl rounded-tr-xs px-4 py-2 text-xs sm:text-sm max-w-[85%] text-left shadow-[2px_2px_0px_#1E1B18] leading-relaxed">
+                    {msg.text}
+                  </div>
+                </div>
+              ),
+            )}
+
+            {isLoading && (
+              <div className="w-fit bg-white border-2 border-[#1E1B18] rounded-full px-4 py-2 text-xs font-bold text-[#4A3525] shadow-[2px_2px_0px_#1E1B18] animate-pulse">
+                Jiwoo sedang merangkai saran & nasihat untukmu... 🐾
+              </div>
+            )}
+          </div>
+
+          {/* Form Input Chat: Terkunci Aman di Atas BottomNavbar pada Semua Ukuran Layar */}
+          <form
+            onSubmit={handleTextSubmit}
+            className="w-full pt-2 pb-1 md:pb-0 md:border-t-2 md:border-[#4A3525]/15 flex items-center gap-2 shrink-0 bg-[#FDF3E7]/90 md:bg-transparent backdrop-blur-xs"
+          >
+            <button
+              type="button"
+              onClick={toggleMute}
+              title={isMuted ? "Aktifkan Suara Jiwoo" : "Matikan Suara Jiwoo"}
+              className="md:hidden p-2.5 rounded-full bg-white border-2 border-[#1E1B18] text-[#1E1B18] shrink-0 shadow-[2px_2px_0px_#1E1B18]"
+            >
+              {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+            </button>
+
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              placeholder="Ketik curhatanmu ke Jiwoo di sini..."
+              className="flex-1 min-w-0 bg-white border-2 border-[#1E1B18] rounded-full px-4 py-2 sm:py-2.5 text-xs sm:text-sm text-[#1E1B18] placeholder-[#4A3525]/55 focus:outline-none shadow-[2px_2px_0px_#1E1B18]"
+            />
+
+            <button
+              type="submit"
+              disabled={isLoading || !inputText.trim()}
+              aria-label="Kirim Pesan"
+              className="bg-[#F4A950] hover:bg-[#e5983e] disabled:opacity-50 border-2 border-[#1E1B18] text-[#1E1B18] p-2.5 sm:px-5 sm:py-2.5 rounded-full flex items-center justify-center active:scale-95 transition-all cursor-pointer shrink-0 shadow-[2px_2px_0px_#1E1B18]"
+            >
+              <Send size={15} />
+            </button>
+          </form>
         </div>
       </div>
 
-      {/* Bottom Navbar Khusus Mobile: Pasti Lurus di Tengah */}
-      <div className="fixed bottom-4 inset-x-0 z-50 flex justify-center items-center px-4 md:hidden pointer-events-none">
-        <div className="w-full max-w-xs sm:max-w-sm flex justify-center pointer-events-auto">
-          <BottomNavbar
-            activeScreen={5}
-            setScreen={setScreen}
-            onCenterClick={handleMicClick}
-          />
-        </div>
-      </div>
+      {/* Bottom Navbar Khusus Mobile */}
+      <BottomNavbar
+        activeScreen={5}
+        setScreen={setScreen}
+        onCenterClick={handleReplayLastMessage}
+      />
     </div>
   );
 }
